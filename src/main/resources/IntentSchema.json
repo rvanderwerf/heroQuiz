@@ -1,0 +1,34 @@
+{
+  "intents": [
+    {
+      "intent": "HeroQuizIntent",
+      "slots": [
+        {
+          "name": "HeroAnswer",
+          "type": "AMAZON.LITERAL"
+        }
+      ]
+    },
+    {
+      "intent": "HeroAnswerIntent",
+      "slots": [
+        {
+          "name": "HeroAnswer",
+          "type": "AMAZON.LITERAL"
+        }
+      ]
+    },
+    {
+      "intent": "QuestionCountIntent",
+      "slots": [
+        {
+          "name": "Count",
+          "type": "AMAZON.NUMBER"
+        }
+      ]
+    },
+    {
+      "intent": "AMAZON.HelpIntent"
+    }
+  ]
+}

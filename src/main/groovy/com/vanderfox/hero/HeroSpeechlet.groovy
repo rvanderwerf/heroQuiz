@@ -1,0 +1,326 @@
+package com.vanderfox.hero
+
+import com.amazon.speech.slu.Intent
+import com.amazon.speech.slu.Slot
+import com.amazon.speech.speechlet.IntentRequest
+import com.amazon.speech.speechlet.LaunchRequest
+import com.amazon.speech.speechlet.Session
+import com.amazon.speech.speechlet.SessionEndedRequest
+import com.amazon.speech.speechlet.SessionStartedRequest
+import com.amazon.speech.speechlet.Speechlet
+import com.amazon.speech.speechlet.SpeechletException
+import com.amazon.speech.speechlet.SpeechletResponse
+import com.amazon.speech.ui.PlainTextOutputSpeech
+import com.amazon.speech.ui.Reprompt
+import com.amazon.speech.ui.SimpleCard
+import com.amazon.speech.ui.SsmlOutputSpeech
+import groovy.transform.CompileStatic
+import groovyx.net.http.RESTClient
+import net.sf.json.JSON
+import net.sf.json.JSONArray
+import net.sf.json.JSONObject
+import net.sf.json.groovy.JsonSlurper
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory
+import com.amazonaws.services.dynamodbv2.document.DynamoDB
+import com.amazonaws.services.dynamodbv2.document.Table
+import com.amazonaws.services.dynamodbv2.document.Item
+import com.amazonaws.services.dynamodbv2.document.ScanFilter
+import com.amazonaws.services.dynamodbv2.model.ScanRequest
+import com.amazonaws.services.dynamodbv2.model.ScanResult
+import com.amazonaws.services.dynamodbv2.document.ItemCollection
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+
+
+
+
+/**
+ * Created by Lee Fox and Ryan Vanderwerf on 3/18/16.
+ */
+/**
+ * This app shows how to connect to hero with Spring Social, Groovy, and Alexa.
+ */
+@CompileStatic
+public class HeroSpeechlet implements Speechlet {
+    private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class);
+    private AmazonDynamoDBClient amazonDynamoDBClient;
+    private HeroQuizDao heroQuizDao;
+    JSONArray quizBank = null
+    int questionIndex = -1
+    int tableRowCount = 0
+    List quizItems
+
+    @Override
+    public void onSessionStarted(final SessionStartedRequest request, final Session session)
+            throws SpeechletException {
+        log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
+                session.getSessionId())
+        session.setAttribute("test","thisisatest")
+        // any initialization logic goes here
+    }
+
+    @Override
+    public SpeechletResponse onLaunch(final LaunchRequest request, final Session session)
+            throws SpeechletException {
+        log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
+                session.getSessionId());
+        initializeComponents(session)
+
+        return getWelcomeResponse();
+    }
+
+    @Override
+    public SpeechletResponse onIntent(final IntentRequest request, final Session session)
+            throws SpeechletException {
+        log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
+                session.getSessionId());
+
+        Intent intent = request.getIntent();
+        String intentName = (intent != null) ? intent.getName() : null;
+        Slot query = intent.getSlot("HeroAnswer")
+        Slot count = intent.getSlot("Count")
+
+        switch (intentName) {
+            case "HeroQuizIntent":
+                getHeroQuestion(query, count, session)
+                break
+            case "HeroAnswerIntent":
+                getHeroAnswer(query, count, session)
+                break
+            case "QuestionCountIntent":
+                setQuestionCount(query, count, session)
+                break
+            case "AMAZON.HelpIntent":
+                getHelpResponse()
+                break
+            default:
+                getHelpResponse()
+                break
+        }
+
+    }
+
+    @Override
+    public void onSessionEnded(final SessionEndedRequest request, final Session session)
+            throws SpeechletException {
+        log.info("onSessionEnded requestId={}, sessionId={}", request.getRequestId(),
+                session.getSessionId());
+        // any cleanup logic goes here
+    }
+
+    /**
+     * Creates and returns a {@code SpeechletResponse} with a welcome message.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse getWelcomeResponse() {
+        String speechText = "How many questions would you like me to ask?";
+
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+        card.setContent(speechText);
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+        log.info("making welcome audio")
+        SsmlOutputSpeech fancySpeech = new SsmlOutputSpeech()
+        fancySpeech.ssml = "<speak><audio src=\"https://s3.amazonaws.com/vanderfox-sounds/test.mp3\"/> ${speechText}</speak>"
+        log.info("finished welcome audio")
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(fancySpeech);
+
+        return SpeechletResponse.newAskResponse(fancySpeech, reprompt, card);
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse getHeroQuestion(Slot query, Slot count, final Session session) {
+
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+
+        questionIndex = (new Random().nextInt() % tableRowCount).abs()
+        log.info ("The question index is:  " + questionIndex)
+        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
+        Table table = dynamoDB.getTable("HeroQuiz");
+        Item item = table.getItem("id", questionIndex);
+        def question = item.getString("question")
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(question);
+
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(speech);
+
+        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse setQuestionCount(Slot query, Slot count, final Session session) {
+        session.setAttribute("questionCounter", Integer.parseInt(count.getValue()))
+        session.setAttribute("numberOfQuestions", Integer.parseInt(count.getValue()))
+
+        int numberOfQuestions = getNumberOfQuestions(session)
+        def speechText = "OK.  I will ask you ${numberOfQuestions} questions.  Say quiz me to start the quiz";
+
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+        card.setContent(speechText);
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(speech);
+
+        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse getHeroAnswer(Slot query, Slot count, final Session session) {
+
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+        def speechText = ""
+
+        String searchTerm = query.getValue()
+        log.info("Guessed answer is:  " + query.getName())
+        log.info("Guessed answer is:  " + query.getValue())
+        log.info("questionIndex=" + questionIndex)
+
+        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
+        Table table = dynamoDB.getTable("HeroQuiz");
+        Item item = table.getItem("id", questionIndex);
+        def answer = item.getString("answer")
+        decrementQuestionCounter(session)
+        String nextPrompt = (getQuestionCounter(session) != 0) ? "Say next question when you're ready to continue." : ""
+
+        if(searchTerm.toLowerCase() == answer.toLowerCase()) {
+            speechText = "You got it right.  " + nextPrompt
+            incrementScore(session)
+            if(getQuestionCounter(session) == 0) {
+                int score = getScore(session)
+                int numberOfQuestions = getNumberOfQuestions(session);
+                speechText += "You got ${score} out of ${numberOfQuestions} questions correct."
+            }
+        } else {
+            speechText = "You got it wrong.  You said " + query.getValue() + "But I was looking for " + answer + ".  " + nextPrompt
+            log.info("I heard this answer:  " + searchTerm.toLowerCase())
+            log.info("I expected this answer:  " + answer)
+            if(getQuestionCounter(session) == 0) {
+                int score = getScore(session)
+                int numberOfQuestions = getNumberOfQuestions(session);
+                speechText += "You got ${score} out of ${numberOfQuestions} questions correct."
+            }
+        }
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(speech);
+        if(getQuestionCounter(session) != 0) {
+            return SpeechletResponse.newAskResponse(speech, reprompt, card);
+        } else {
+            return SpeechletResponse.newTellResponse(speech, card);
+
+        }
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the help intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse getHelpResponse() {
+        String speechText = "Say quiz me to test your superhero knowledge.";
+
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+        card.setContent(speechText);
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(speech);
+
+        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+    }
+
+    private void incrementScore(Session session) {
+        int score = (int) session.getAttribute("score")
+        score++
+        session.setAttribute("score", score)
+
+    }
+
+    private int getScore(Session session) {
+        return (int) session.getAttribute("score")
+    }
+
+    private void decrementQuestionCounter(Session session) {
+        int questionCounter = (int) session.getAttribute("questionCounter")
+        questionCounter--
+        session.setAttribute("questionCounter", questionCounter)
+
+    }
+
+    private void setQuestionCounter(int questionCounter, Session session) {
+        session.setAttribute("questionCounter", questionCounter)
+
+    }
+
+    private int getQuestionCounter(Session session) {
+        return (int) session.getAttribute("questionCounter")
+    }
+
+    private int getNumberOfQuestions(Session session) {
+        return (int) session.getAttribute("numberOfQuestions")
+    }
+
+
+    /**
+     * Initializes the instance components if needed.
+     */
+    private void initializeComponents(Session session) {
+        if (amazonDynamoDBClient == null) {
+            amazonDynamoDBClient = new AmazonDynamoDBClient();
+            DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
+            ScanRequest req = new ScanRequest();
+            req.setTableName("HeroQuiz");
+            ScanResult result = amazonDynamoDBClient.scan(req)
+            quizItems = result.items
+            tableRowCount = quizItems.size()
+            log.info("This many rows in the table:  " + tableRowCount)
+        }
+        session.setAttribute("score", 0)
+    }
+}
