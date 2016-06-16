@@ -17,7 +17,6 @@ import com.amazon.speech.ui.SsmlOutputSpeech
 import com.vanderfox.hero.question.Question
 import com.vanderfox.hero.user.User
 import groovy.transform.CompileStatic
-import net.sf.json.JSONArray
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory
 import com.amazonaws.services.dynamodbv2.document.DynamoDB
@@ -40,11 +39,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 public class HeroSpeechlet implements Speechlet {
     private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class);
     private AmazonDynamoDBClient amazonDynamoDBClient;
-    private HeroQuizDao heroQuizDao;
-    JSONArray quizBank = null
-    int questionIndex = -1
     int tableRowCount = 0
-    List quizItems
 
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
@@ -62,7 +57,7 @@ public class HeroSpeechlet implements Speechlet {
                 session.getSessionId());
         initializeComponents(session)
 
-        return getWelcomeResponse();
+        getWelcomeResponse();
     }
 
     @Override
@@ -78,16 +73,16 @@ public class HeroSpeechlet implements Speechlet {
 
         switch (intentName) {
             case "QuizIntent":
-                getHeroQuestion(query, count, session)
+                getHeroQuestion(session)
                 break
             case "PlayerNameIntent":
-                setPlayerName(query, count, session)
+                setPlayerName(query, session)
                 break
             case "AnswerIntent":
-                getHeroAnswer(query, count, session)
+                getHeroAnswer(query, session)
                 break
             case "QuestionCountIntent":
-                setQuestionCount(query, count, session)
+                setQuestionCount(count, session)
                 break
             case "AMAZON.HelpIntent":
                 getHelpResponse()
@@ -115,7 +110,7 @@ public class HeroSpeechlet implements Speechlet {
     private SpeechletResponse getWelcomeResponse() {
         String speechText = "Welcome to Hero Quiz.  Please tell me the first players name.";
 
-        return askResponseFancy(speechText, speechText, "https://s3.amazonaws.com/vanderfox-sounds/test.mp3")
+        askResponseFancy(speechText, speechText, "https://s3.amazonaws.com/vanderfox-sounds/test.mp3")
     }
 
     /**
@@ -123,8 +118,8 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHeroQuestion(Slot query, Slot count, final Session session) {
-        getHeroQuestion(query, count, session, "")
+    private SpeechletResponse getHeroQuestion(final Session session) {
+        getHeroQuestion(session, "")
     }
 
         /**
@@ -132,18 +127,29 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHeroQuestion(Slot query, Slot count, final Session session, String speechText) {
-        Question question = getRandomQuestion()
+    private SpeechletResponse getHeroQuestion(final Session session, String speechText) {
+        Question question = getRandomUnaskedQuestion(session)
         session.setAttribute("lastQuestionAsked", question)
 
         speechText += "\n"
         speechText += question.getText()
-        return askResponse(speechText, speechText)
+        askResponse(speechText, speechText)
 
     }
 
+    private Question getRandomUnaskedQuestion(Session session) {
+        LinkedHashMap<String, Question> askedQuestions = (LinkedHashMap) session.getAttribute("askedQuestions")
+        Question question = getRandomQuestion()
+        while(askedQuestions.get(question.getText()) != null) {
+            question = getRandomQuestion()
+        }
+        askedQuestions.put(question.getText(), question)
+        session.setAttribute("askedQuestions", askedQuestions)
+        question
+    }
+
     private Question getRandomQuestion() {
-        questionIndex = (new Random().nextInt() % tableRowCount).abs()
+        int questionIndex = (new Random().nextInt() % tableRowCount).abs()
         log.info("The question index is:  " + questionIndex)
         Question question = getQuestion(questionIndex)
         question
@@ -165,7 +171,7 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse setQuestionCount(Slot query, Slot count, final Session session) {
+    private SpeechletResponse setQuestionCount(Slot count, final Session session) {
         session.setAttribute("questionCounter", Integer.parseInt(count.getValue()))
         session.setAttribute("numberOfQuestions", Integer.parseInt(count.getValue()))
 
@@ -178,7 +184,7 @@ public class HeroSpeechlet implements Speechlet {
         speechText += "\n"
         speechText += player.getName() + ", "
 
-        return getHeroQuestion(query, count, session, speechText);
+        getHeroQuestion(session, speechText);
 
     }
 
@@ -187,7 +193,7 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse setPlayerName(Slot query, Slot count, final Session session) {
+    private SpeechletResponse setPlayerName(Slot query, final Session session) {
         String playerName = query.getValue()
 
         def speechText = ""
@@ -203,7 +209,7 @@ public class HeroSpeechlet implements Speechlet {
             speechText = "How many questions should I ask each player?"
         }
 
-        return askResponse(speechText, speechText)
+        askResponse(speechText, speechText)
 
     }
 
@@ -221,7 +227,7 @@ public class HeroSpeechlet implements Speechlet {
         Reprompt reprompt = new Reprompt();
         reprompt.setOutputSpeech(speech);
 
-        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+        SpeechletResponse.newAskResponse(speech, reprompt, card);
     }
 
     private SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
@@ -241,7 +247,7 @@ public class HeroSpeechlet implements Speechlet {
         Reprompt reprompt = new Reprompt();
         reprompt.setOutputSpeech(fancySpeech);
 
-        return SpeechletResponse.newAskResponse(fancySpeech, reprompt, card);
+        SpeechletResponse.newAskResponse(fancySpeech, reprompt, card);
     }
 
     /**
@@ -249,7 +255,7 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHeroAnswer(Slot query, Slot count, final Session session) {
+    private SpeechletResponse getHeroAnswer(Slot query, final Session session) {
 
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();
@@ -295,7 +301,6 @@ public class HeroSpeechlet implements Speechlet {
             return askResponse(speechText, speechText)
         } else {
             return SpeechletResponse.newTellResponse(speech, card);
-
         }
     }
 
@@ -307,7 +312,7 @@ public class HeroSpeechlet implements Speechlet {
     private SpeechletResponse getHelpResponse() {
         String speechText = "Say quiz me to test your superhero knowledge.";
 
-        return askResponse(speechText, speechText)
+        askResponse(speechText, speechText)
     }
 
     private void incrementScore(Session session) {
@@ -318,7 +323,7 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     private int getScore(Session session) {
-        return (int) session.getAttribute("score")
+        (int) session.getAttribute("score")
     }
 
     private void decrementQuestionCounter(Session session) {
@@ -328,17 +333,12 @@ public class HeroSpeechlet implements Speechlet {
 
     }
 
-    private void setQuestionCounter(int questionCounter, Session session) {
-        session.setAttribute("questionCounter", questionCounter)
-
-    }
-
     private int getQuestionCounter(Session session) {
-        return (int) session.getAttribute("questionCounter")
+        (int) session.getAttribute("questionCounter")
     }
 
     private int getNumberOfQuestions(Session session) {
-        return (int) session.getAttribute("numberOfQuestions")
+        (int) session.getAttribute("numberOfQuestions")
     }
 
 
@@ -348,14 +348,15 @@ public class HeroSpeechlet implements Speechlet {
     private void initializeComponents(Session session) {
         if (amazonDynamoDBClient == null) {
             amazonDynamoDBClient = new AmazonDynamoDBClient();
-            DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
             ScanRequest req = new ScanRequest();
             req.setTableName("HeroQuiz");
             ScanResult result = amazonDynamoDBClient.scan(req)
-            quizItems = result.items
+            List quizItems = result.items
             tableRowCount = quizItems.size()
             log.info("This many rows in the table:  " + tableRowCount)
         }
         session.setAttribute("score", 0)
+        LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
+        session.setAttribute("askedQuestions", askedQuestions)
     }
 }

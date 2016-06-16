@@ -20,11 +20,11 @@ public class HeroQuizQuestionData {
         HeroQuizQuestionData newInstance = new HeroQuizQuestionData();
         newInstance.setPlayers(new ArrayList<String>());
         newInstance.setScores(new HashMap<String, Long>());
-        return newInstance;
+        newInstance;
     }
 
     public String getQuestion() {
-        return question;
+        question;
     }
 
     public void setQuestion(String question) {
@@ -41,6 +41,6 @@ public class HeroQuizQuestionData {
 
     @Override
     public String toString() {
-        return "[HeroQuizQuestionData question: " + question + "] answer: " + answer + "]";
+        "[HeroQuizQuestionData question: " + question + "] answer: " + answer + "]";
     }
 }

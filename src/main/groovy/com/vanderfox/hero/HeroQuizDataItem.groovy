@@ -27,7 +27,7 @@ public class HeroQuizDataItem {
     @DynamoDBHashKey(attributeName = "id")
     public int getId() {
         log.info ("get item index is:  " + id)
-        return id;
+        id;
     }
 
     public void setId(int id) {
