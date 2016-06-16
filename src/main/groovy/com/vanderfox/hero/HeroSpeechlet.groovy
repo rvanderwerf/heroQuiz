@@ -14,6 +14,7 @@ import com.amazon.speech.ui.PlainTextOutputSpeech
 import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
+import com.vanderfox.hero.question.Question
 import com.vanderfox.hero.user.User
 import groovy.transform.CompileStatic
 import groovyx.net.http.RESTClient
@@ -159,14 +160,10 @@ public class HeroSpeechlet implements Speechlet {
         SimpleCard card = new SimpleCard();
         card.setTitle("Hero Quiz");
 
-        questionIndex = (new Random().nextInt() % tableRowCount).abs()
-        log.info ("The question index is:  " + questionIndex)
-        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
-        Table table = dynamoDB.getTable("HeroQuiz");
-        Item item = table.getItem("id", questionIndex);
-        def question = item.getString("question")
+        Question question = getRandomQuestion()
+        session.setAttribute("lastQuestionAsked", question)
         speechText += "\n"
-        speechText += question
+        speechText += question.getText()
         // Create the plain text output.
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
         speech.setText(speechText);
@@ -175,7 +172,25 @@ public class HeroSpeechlet implements Speechlet {
         Reprompt reprompt = new Reprompt();
         reprompt.setOutputSpeech(speech);
 
-        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+        SpeechletResponse.newAskResponse(speech, reprompt, card);
+    }
+
+    private Question getRandomQuestion() {
+        questionIndex = (new Random().nextInt() % tableRowCount).abs()
+        log.info("The question index is:  " + questionIndex)
+        Question question = getQuestion(questionIndex)
+        question
+    }
+
+    private Question getQuestion(int questionIndex) {
+        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
+        Table table = dynamoDB.getTable("HeroQuiz");
+        Item item = table.getItem("id", questionIndex);
+        def questionText = item.getString("question")
+        Question question = new Question()
+        question.setText(questionText)
+        question.setIndex(questionIndex)
+        question
     }
 
     /**
@@ -253,12 +268,9 @@ public class HeroSpeechlet implements Speechlet {
         String searchTerm = query.getValue()
         log.info("Guessed answer is:  " + query.getName())
         log.info("Guessed answer is:  " + query.getValue())
-        log.info("questionIndex=" + questionIndex)
 
-        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
-        Table table = dynamoDB.getTable("HeroQuiz");
-        Item item = table.getItem("id", questionIndex);
-        def answer = item.getString("answer")
+        Question question = (Question) session.getAttribute("lastQuestionAsked")
+        def answer = question.getText()
         decrementQuestionCounter(session)
         String nextPrompt = (getQuestionCounter(session) != 0) ? "Say next question when you're ready to continue." : ""
 
