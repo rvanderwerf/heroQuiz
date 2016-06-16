@@ -349,7 +349,7 @@ public class HeroSpeechlet implements Speechlet {
      * Initializes the instance components if needed.
      */
     private void initializeComponents(Session session) {
-        private AmazonDynamoDBClient amazonDynamoDBClient;
+        AmazonDynamoDBClient amazonDynamoDBClient;
         amazonDynamoDBClient = new AmazonDynamoDBClient();
         ScanRequest req = new ScanRequest();
         req.setTableName("HeroQuiz");
