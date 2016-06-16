@@ -11,6 +11,7 @@ buildscript {
     }
     dependencies {
         classpath "jp.classmethod.aws:gradle-aws-plugin:0.22"
+        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
     }
 }
 
@@ -18,6 +19,7 @@ buildscript {
 apply plugin: 'groovy'
 apply plugin: 'java'
 apply plugin: 'jp.classmethod.aws.lambda'
+apply plugin: "com.github.johnrengelman.shadow"
 
 group 'vanderfox.alexa.hero'
 version '1.0-SNAPSHOT'
@@ -47,6 +49,8 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.19'
     compile 'ch.qos.logback:logback-classic:1.0.13'
     compile group: 'com.amazonaws', name: 'aws-java-sdk-dynamodb', version: '1.11.3'
+    compile 'org.grails:grails-validation:3.0.4'
+    compile 'org.grails:grails-datastore-gorm-dynamodb:4.0.0.M2'
 
 
 
@@ -84,9 +88,15 @@ task fatJar(type: Jar) {
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
-build.dependsOn fatJar
+build.dependsOn shadowJar
 
 task runMain() {
 
 
+}
+
+
+shadowJar {
+    baseName = 'heroQuiz-fat'
+    classifier = null
 }

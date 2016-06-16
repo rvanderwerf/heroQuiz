@@ -16,11 +16,25 @@ import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
 import com.vanderfox.hero.user.User
 import groovy.transform.CompileStatic
+import groovy.transform.TypeCheckingMode
 import groovyx.net.http.RESTClient
 import net.sf.json.JSON
 import net.sf.json.JSONArray
 import net.sf.json.JSONObject
 import net.sf.json.groovy.JsonSlurper
+import org.grails.datastore.gorm.dynamodb.DynamoDBGormEnhancer
+import org.grails.datastore.gorm.events.AutoTimestampEventListener
+import org.grails.datastore.gorm.events.DomainEventListener
+import org.grails.datastore.mapping.dynamodb.DynamoDBDatastore
+import org.grails.datastore.mapping.dynamodb.config.DynamoDBMappingContext
+import org.grails.datastore.mapping.dynamodb.engine.DynamoDBAssociationInfo
+import org.grails.datastore.mapping.dynamodb.engine.DynamoDBTableResolver
+import org.grails.datastore.mapping.dynamodb.engine.DynamoDBTableResolverFactory
+import org.grails.datastore.mapping.dynamodb.util.DynamoDBTemplate
+import org.grails.datastore.mapping.dynamodb.util.DynamoDBUtil
+import org.grails.datastore.mapping.model.MappingContext
+import org.grails.datastore.mapping.model.PersistentEntity
+import org.grails.datastore.mapping.transactions.DatastoreTransactionManager
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory
 import com.amazonaws.services.dynamodbv2.document.DynamoDB
@@ -30,7 +44,15 @@ import com.amazonaws.services.dynamodbv2.document.ScanFilter
 import com.amazonaws.services.dynamodbv2.model.ScanRequest
 import com.amazonaws.services.dynamodbv2.model.ScanResult
 import com.amazonaws.services.dynamodbv2.document.ItemCollection
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
+import org.springframework.context.support.GenericApplicationContext
+import org.springframework.util.StringUtils
+import org.springframework.validation.Errors
+import org.springframework.validation.Validator
+
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors;
 
 
 
@@ -51,6 +73,11 @@ public class HeroSpeechlet implements Speechlet {
     int tableRowCount = 0
     List quizItems
 
+    //gorm dynamo db
+    static DynamoDBDatastore dynamoDB
+    static org.grails.datastore.mapping.core.Session dynamoSession
+    static Set<String> tableNames = new HashSet<String>() //we keep track of each table to drop at the end because DynamoDB is expensive for a large number of tables
+
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
             throws SpeechletException {
@@ -65,6 +92,7 @@ public class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
+        dynamoSession = initializeDynamoDBDatasource(session)
         initializeComponents(session)
 
         return getWelcomeResponse();
@@ -302,7 +330,7 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getHelpResponse() {
-        String speechText = "Say quiz me to test your superhero knowledge.";
+        String speechText = "Say quiz me to test your superhero knowledge. You can select number of players and number of questions.";
 
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();
@@ -356,6 +384,7 @@ public class HeroSpeechlet implements Speechlet {
      * Initializes the instance components if needed.
      */
     private void initializeComponents(Session session) {
+
         if (amazonDynamoDBClient == null) {
             amazonDynamoDBClient = new AmazonDynamoDBClient();
             DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
@@ -368,4 +397,119 @@ public class HeroSpeechlet implements Speechlet {
         }
         session.setAttribute("score", 0)
     }
+
+    @CompileStatic(TypeCheckingMode.SKIP)
+    private org.grails.datastore.mapping.core.Session initializeDynamoDBDatasource(Session session) {
+        def env = System.getenv()
+        final userHome = System.getProperty("user.home")
+        def settingsFile = new File(userHome, "aws.properties")
+        def connectionDetails = [:]
+        if (settingsFile.exists()) {
+            def props = new Properties()
+            settingsFile.withReader { reader ->
+                props.load(reader)
+            }
+            connectionDetails.put(DynamoDBDatastore.ACCESS_KEY, props['AWS_ACCESS_KEY'])
+            connectionDetails.put(DynamoDBDatastore.SECRET_KEY, props['AWS_SECRET_KEY'])
+        }
+
+        connectionDetails.put(DynamoDBDatastore.TABLE_NAME_PREFIX_KEY, "TEST_")
+        connectionDetails.put(DynamoDBDatastore.DELAY_AFTER_WRITES_MS, "3000") //this flag will cause pausing for that many MS after each write - to fight eventual consistency
+
+        DynamoDBDatastore dynamoDB = new DynamoDBDatastore(new DynamoDBMappingContext(), connectionDetails)
+        def ctx = new GenericApplicationContext()
+        ctx.refresh()
+        dynamoDB.applicationContext = ctx
+        dynamoDB.afterPropertiesSet()
+
+        def classes = [HeroQuizDomain.class,HeroQuizItemDomain.class]
+        for (cls in classes) {
+            dynamoDB.mappingContext.addPersistentEntity(cls)
+        }
+        //    dynamoDB.mappingContext.addPersistentEntity(HeroQuizItemDomain.class)
+        cleanOrCreateDomainsIfNeeded(classes, dynamoDB.mappingContext, dynamoDB)
+
+        PersistentEntity entity = dynamoDB.mappingContext.persistentEntities.find { PersistentEntity e -> e.name.contains("TestEntity")}
+
+        dynamoDB.mappingContext.addEntityValidator(entity, [
+                supports: { Class c -> true },
+                validate: { Object o, Errors errors ->
+                    if (!StringUtils.hasText(o.name)) {
+                        errors.rejectValue("name", "name.is.blank")
+                    }
+                }
+        ] as Validator)
+
+        def enhancer = new DynamoDBGormEnhancer(dynamoDB, new DatastoreTransactionManager(datastore: dynamoDB))
+        enhancer.enhance()
+
+        dynamoDB.mappingContext.addMappingContextListener({ e ->
+            enhancer.enhance e
+        } as MappingContext.Listener)
+
+        dynamoDB.applicationContext.addApplicationListener new DomainEventListener(dynamoDB)
+        dynamoDB.applicationContext.addApplicationListener new AutoTimestampEventListener(dynamoDB)
+
+        dynamoSession = dynamoDB.connect()
+
+        return dynamoSession
+
+
+    }
+
+    /**
+     * Creates AWS domain if AWS domain corresponding to a test entity class does not exist, or cleans it if it does exist.
+     * @param domainClasses
+     * @param mappingContext
+     * @param dynamoDBDatastore
+    */
+    @CompileStatic(TypeCheckingMode.SKIP)
+    static void cleanOrCreateDomainsIfNeeded(List domainClasses, MappingContext mappingContext, DynamoDBDatastore dynamoDBDatastore) {
+        DynamoDBTemplate template = dynamoDBDatastore.getDynamoDBTemplate()
+        List<String> existingTables = template.listTables()
+        DynamoDBTableResolverFactory resolverFactory = new DynamoDBTableResolverFactory()
+
+        ExecutorService executorService = Executors.newFixedThreadPool(10) //dynamodb allows no more than 10 tables to be created simultaneously
+        CountDownLatch latch = new CountDownLatch(domainClasses.size())
+        for (dc in domainClasses) {
+            def domainClass = dc //explicitly declare local variable which we will be using from the thread
+            //do dynamoDB work in parallel threads for each entity to speed things up
+            executorService.execute({
+                try {
+                    PersistentEntity entity = mappingContext.getPersistentEntity(domainClass.getName())
+                    DynamoDBTableResolver tableResolver = resolverFactory.buildResolver(entity, dynamoDBDatastore)
+                    def tables = tableResolver.getAllTablesForEntity()
+                    tables.each { table ->
+                        tableNames.add(table)
+                        clearOrCreateTable(dynamoDBDatastore, existingTables, table)
+                        //create domains for associations
+                        entity.getAssociations().each { association ->
+                            DynamoDBAssociationInfo associationInfo = dynamoDBDatastore.getAssociationInfo(association)
+                            if (associationInfo) {
+                                tableNames.add(associationInfo.getTableName())
+                                clearOrCreateTable(dynamoDBDatastore, existingTables, associationInfo.getTableName())
+                            }
+                        }
+                    }
+                } finally {
+                    latch.countDown()
+                }
+            } as Runnable)
+        }
+        latch.await()
+    }
+
+    @CompileStatic(TypeCheckingMode.SKIP)
+    static clearOrCreateTable(DynamoDBDatastore datastore, def existingTables, String tableName) {
+        if (existingTables.contains(tableName)) {
+            datastore.getDynamoDBTemplate().deleteAllItems(tableName) //delete all items there
+        } else {
+            //create it
+            datastore.getDynamoDBTemplate().createTable(tableName,
+                    DynamoDBUtil.createIdKeySchema(),
+                    DynamoDBUtil.createDefaultProvisionedThroughput(datastore)
+            )
+        }
+    }
+
 }
