@@ -178,7 +178,12 @@ public class HeroSpeechlet implements Speechlet {
         session.setAttribute("numberOfQuestions", Integer.parseInt(count.getValue()))
 
         int numberOfQuestions = getNumberOfQuestions(session)
-        def speechText = "OK.  I will ask you ${numberOfQuestions} questions.  Say quiz me to start the quiz";
+        def speechText = "OK.  Got it.  Let’s get started.";
+
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+        User player = playerList.get(0)
+        speechText += "\n"
+        speechText += player.getName() + ", this is your question:"
 
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();
