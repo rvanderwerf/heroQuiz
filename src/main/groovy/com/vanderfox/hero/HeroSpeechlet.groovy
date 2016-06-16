@@ -47,6 +47,9 @@ public class HeroSpeechlet implements Speechlet {
         log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
         session.setAttribute("playerList", new ArrayList<User>())
+        LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
+        session.setAttribute("askedQuestions", askedQuestions)
+
         // any initialization logic goes here
     }
 
@@ -356,7 +359,5 @@ public class HeroSpeechlet implements Speechlet {
             log.info("This many rows in the table:  " + tableRowCount)
         }
         session.setAttribute("score", 0)
-        LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
-        session.setAttribute("askedQuestions", askedQuestions)
     }
 }
