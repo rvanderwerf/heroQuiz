@@ -7,6 +7,6 @@ class HeroQuizItemDomain {
     HeroQuizDomain quiz
     String question
     String domain
-    
+    int id
 
 }

@@ -14,6 +14,13 @@ import com.amazon.speech.ui.PlainTextOutputSpeech
 import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
+import com.amazonaws.auth.AWSCredentials
+import com.amazonaws.auth.AWSCredentialsProvider
+import com.amazonaws.auth.AWSCredentialsProviderChain
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+import com.amazonaws.auth.EnvironmentVariableCredentialsProvider
+import com.amazonaws.auth.SystemPropertiesCredentialsProvider
+import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.vanderfox.hero.question.Question
 import com.vanderfox.hero.user.User
 import groovy.transform.CompileStatic
@@ -397,15 +404,28 @@ public class HeroSpeechlet implements Speechlet {
         def env = System.getenv()
         final userHome = System.getProperty("user.home")
         def settingsFile = new File(userHome, "aws.properties")
+        /*AWSCredentialsProvider awsCredentialsProvider
+        awsCredentialsProvider = new ProfileCredentialsProvider("vanderfox")
+        AWSCredentials creds = awsCredentialsProvider.getCredentials()*/
+        DefaultAWSCredentialsProviderChain providerChain = new DefaultAWSCredentialsProviderChain()
+        providerChain.refresh()
+
+        log.debug("using credentials: ${providerChain.credentials} accesskey=${providerChain?.credentials?.AWSAccessKeyId} secret=${providerChain?.credentials.AWSSecretKey}")
         def connectionDetails = [:]
-        if (settingsFile.exists()) {
+        //connectionDetails.put(DynamoDBDatastore.ACCESS_KEY, providerChain.credentials.AWSAccessKeyId)
+        //connectionDetails.put(DynamoDBDatastore.SECRET_KEY, providerChain.credentials.AWSSecretKey)
+        connectionDetails.put(DynamoDBDatastore.ACCESS_KEY, "AKIAJIRZKT5SBLZ2JMKQ")
+        connectionDetails.put(DynamoDBDatastore.SECRET_KEY, "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")
+        /*if (settingsFile.exists()) {
             def props = new Properties()
             settingsFile.withReader { reader ->
                 props.load(reader)
             }
-            connectionDetails.put(DynamoDBDatastore.ACCESS_KEY, props['AWS_ACCESS_KEY'])
-            connectionDetails.put(DynamoDBDatastore.SECRET_KEY, props['AWS_SECRET_KEY'])
-        }
+            //connectionDetails.put(DynamoDBDatastore.ACCESS_KEY, props[providerChain.credentials.AWSAccessKeyId])
+            //connectionDetails.put(DynamoDBDatastore.SECRET_KEY, props[providerChain.credentials.AWSSecretKey])
+
+
+        }*/
 
         connectionDetails.put(DynamoDBDatastore.TABLE_NAME_PREFIX_KEY, "TEST_")
         connectionDetails.put(DynamoDBDatastore.DELAY_AFTER_WRITES_MS, "3000") //this flag will cause pausing for that many MS after each write - to fight eventual consistency
@@ -445,7 +465,7 @@ public class HeroSpeechlet implements Speechlet {
         dynamoDB.applicationContext.addApplicationListener new AutoTimestampEventListener(dynamoDB)
 
         dynamoSession = dynamoDB.connect()
-
+        log.debug("successfully created dynamo db session!")
         return dynamoSession
 
 
@@ -505,5 +525,16 @@ public class HeroSpeechlet implements Speechlet {
             )
         }
     }
+
+
+    /*protected AWSCredentialsProvider getCredentialsProvider() {
+        new AWSCredentialsProviderChain(
+                new EnvironmentVariableCredentialsProvider(),
+                new SystemPropertiesCredentialsProvider(),
+                profileConfigured ? new ProfileCredentialsProvider(profile) : EMPTY_PROVIDER,
+                nonDefaultProfile ? new ProfileCredentialsProvider(DEFAULT_PROFILE) : EMPTY_PROVIDER,
+                new InstanceProfileCredentialsProvider()
+        )
+    }*/
 
 }
