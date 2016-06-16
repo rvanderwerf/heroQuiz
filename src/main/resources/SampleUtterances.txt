@@ -1,6 +1,6 @@
-HeroQuizIntent quiz me
-HeroQuizIntent next question
+QuizIntent quiz me
+QuizIntent next question
 QuestionCountIntent {Count} questions
-HeroAnswerIntent {test|HeroAnswer}
-HeroAnswerIntent {test test|HeroAnswer}
-HeroAnswerIntent {I don't know|HeroAnswer}
+AnswerIntent {test|Answer}
+AnswerIntent {test test|Answer}
+AnswerIntent {I don't know|Answer}

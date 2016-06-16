@@ -77,14 +77,14 @@ public class HeroSpeechlet implements Speechlet {
 
         Intent intent = request.getIntent();
         String intentName = (intent != null) ? intent.getName() : null;
-        Slot query = intent.getSlot("HeroAnswer")
+        Slot query = intent.getSlot("Answer")
         Slot count = intent.getSlot("Count")
 
         switch (intentName) {
-            case "HeroQuizIntent":
+            case "QuizIntent":
                 getHeroQuestion(query, count, session)
                 break
-            case "HeroAnswerIntent":
+            case "AnswerIntent":
                 getHeroAnswer(query, count, session)
                 break
             case "QuestionCountIntent":

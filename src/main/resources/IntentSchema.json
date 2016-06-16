@@ -1,19 +1,19 @@
 {
   "intents": [
     {
-      "intent": "HeroQuizIntent",
+      "intent": "QuizIntent",
       "slots": [
         {
-          "name": "HeroAnswer",
+          "name": "Answer",
           "type": "AMAZON.LITERAL"
         }
       ]
     },
     {
-      "intent": "HeroAnswerIntent",
+      "intent": "AnswerIntent",
       "slots": [
         {
-          "name": "HeroAnswer",
+          "name": "Answer",
           "type": "AMAZON.LITERAL"
         }
       ]
