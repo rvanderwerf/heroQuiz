@@ -1,0 +1,26 @@
+Alexa:  Welcome to Hero Quiz.  Tell me the first player’s name.
+Player 1:  Lee
+Alexa:  OK.  Tell me the next player’s name or say “done” to start move on.
+Player 2:  Ryan
+Alexa:  OK.  Tell me the next player’s name or say “done” to start move on.
+Player 1:  Done
+Alexa:  How many questions should I ask each player?
+Player 2:  2
+Alexa:  OK.  Got it.  Let’s get started.
+Alexa:  Lee, What is Spider-man’s real name?
+Player 1:  Peter Parker.
+Alexa:  You got it right.
+Alexa:  Ryan, What is Captain America’s real name?
+Player 2:  Steve Rogers
+Alexa:  You got it right.
+Alexa:  Lee, Who is Cloak’s partner?
+Player 1:  Dagger.
+Alexa:  You got it right.
+Alexa:  Ryan, What issue of The Amazing Spiderman had Aunt May paint apples on her white linens?
+Player 2:  Ummmm.  12?
+Alexa:  You got it wrong.  You said ummmm 12, but I was expecting 217.
+Alexa:  The quiz is over.
+Alexa:  Lee answered 100% correctly.
+Alexa:  Ryan answered 50% correctly.
+Alexa:  Lee wins this game.
+Alexa:  Please play again sometime.
