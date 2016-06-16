@@ -14,6 +14,7 @@ import com.amazon.speech.ui.PlainTextOutputSpeech
 import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
+import com.vanderfox.hero.user.User
 import groovy.transform.CompileStatic
 import groovyx.net.http.RESTClient
 import net.sf.json.JSON
@@ -55,7 +56,7 @@ public class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
-        session.setAttribute("test","thisisatest")
+        session.setAttribute("playerList", new ArrayList<User>())
         // any initialization logic goes here
     }
 
@@ -83,6 +84,9 @@ public class HeroSpeechlet implements Speechlet {
         switch (intentName) {
             case "QuizIntent":
                 getHeroQuestion(query, count, session)
+                break
+            case "PlayerNameIntent":
+                setPlayerName(query, count, session)
                 break
             case "AnswerIntent":
                 getHeroAnswer(query, count, session)
@@ -114,7 +118,7 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getWelcomeResponse() {
-        String speechText = "How many questions would you like me to ask?";
+        String speechText = "Welcome to Hero Quiz.  Please tell me the first players name.";
 
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();
@@ -175,6 +179,44 @@ public class HeroSpeechlet implements Speechlet {
 
         int numberOfQuestions = getNumberOfQuestions(session)
         def speechText = "OK.  I will ask you ${numberOfQuestions} questions.  Say quiz me to start the quiz";
+
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+        card.setContent(speechText);
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(speech);
+
+        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse setPlayerName(Slot query, Slot count, final Session session) {
+        String playerName = query.getValue()
+
+        def speechText = ""
+
+        if (!"last player".equalsIgnoreCase(playerName)) {
+            User user = new User()
+            user.setName(playerName)
+            ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+            playerList.add(user)
+            session.setAttribute("playerList", playerList)
+            speechText = "OK.  Tell me the next player’s name or say Last Player to move on."
+        } else {
+            speechText = "How many questions should I ask each player?"
+        }
 
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();

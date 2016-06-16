@@ -1,7 +1,7 @@
 {
   "intents": [
     {
-      "intent": "QuizIntent",
+      "intent": "PlayerNameIntent",
       "slots": [
         {
           "name": "Answer",

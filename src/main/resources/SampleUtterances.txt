@@ -1,5 +1,4 @@
-QuizIntent quiz me
-QuizIntent next question
+PlayerNameIntent {test|Answer}
 QuestionCountIntent {Count} questions
 AnswerIntent {test|Answer}
 AnswerIntent {test test|Answer}

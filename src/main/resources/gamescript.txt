@@ -1,8 +1,8 @@
 Alexa:  Welcome to Hero Quiz.  Tell me the first player’s name.
 Player 1:  Lee
-Alexa:  OK.  Tell me the next player’s name or say “done” to start move on.
+Alexa:  OK.  Tell me the next player’s name or say Last Player to start move on.
 Player 2:  Ryan
-Alexa:  OK.  Tell me the next player’s name or say “done” to start move on.
+Alexa:  OK.  Tell me the next player’s name or say Last Player to start move on.
 Player 1:  Done
 Alexa:  How many questions should I ask each player?
 Player 2:  2
