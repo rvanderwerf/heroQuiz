@@ -231,6 +231,23 @@ public class HeroSpeechlet implements Speechlet {
         SpeechletResponse.newAskResponse(speech, reprompt, card);
     }
 
+    private SpeechletResponse tellResponse(String cardText, String speechText) {
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+        card.setContent(cardText);
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(speech);
+
+        SpeechletResponse.newTellResponse(speech, card);
+    }
+
     private SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();
@@ -291,17 +308,10 @@ public class HeroSpeechlet implements Speechlet {
             }
         }
 
-        // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
-
-        // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(speech);
         if(getQuestionCounter(session) != 0) {
             return askResponse(speechText, speechText)
         } else {
-            return SpeechletResponse.newTellResponse(speech, card);
+            return tellResponse(speechText, speechText);
         }
     }
 
