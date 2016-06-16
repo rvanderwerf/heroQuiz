@@ -38,8 +38,6 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 @CompileStatic
 public class HeroSpeechlet implements Speechlet {
     private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class);
-    private AmazonDynamoDBClient amazonDynamoDBClient;
-    int tableRowCount = 0
 
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
@@ -49,6 +47,8 @@ public class HeroSpeechlet implements Speechlet {
         session.setAttribute("playerList", new ArrayList<User>())
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
         session.setAttribute("askedQuestions", askedQuestions)
+        session.setAttribute("score", 0)
+        initializeComponents(session)
 
         // any initialization logic goes here
     }
@@ -58,7 +58,6 @@ public class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
-        initializeComponents(session)
 
         getWelcomeResponse();
     }
@@ -142,16 +141,17 @@ public class HeroSpeechlet implements Speechlet {
 
     private Question getRandomUnaskedQuestion(Session session) {
         LinkedHashMap<String, Question> askedQuestions = (LinkedHashMap) session.getAttribute("askedQuestions")
-        Question question = getRandomQuestion()
+        Question question = getRandomQuestion(session)
         while(askedQuestions.get(question.getText()) != null) {
-            question = getRandomQuestion()
+            question = getRandomQuestion(session)
         }
         askedQuestions.put(question.getText(), question)
         session.setAttribute("askedQuestions", askedQuestions)
         question
     }
 
-    private Question getRandomQuestion() {
+    private Question getRandomQuestion(Session session) {
+        int tableRowCount = Integer.parseInt((String) session.getAttribute("tableRowCount"))
         int questionIndex = (new Random().nextInt() % tableRowCount).abs()
         log.info("The question index is:  " + questionIndex)
         Question question = getQuestion(questionIndex)
@@ -349,15 +349,14 @@ public class HeroSpeechlet implements Speechlet {
      * Initializes the instance components if needed.
      */
     private void initializeComponents(Session session) {
-        if (amazonDynamoDBClient == null) {
-            amazonDynamoDBClient = new AmazonDynamoDBClient();
-            ScanRequest req = new ScanRequest();
-            req.setTableName("HeroQuiz");
-            ScanResult result = amazonDynamoDBClient.scan(req)
-            List quizItems = result.items
-            tableRowCount = quizItems.size()
-            log.info("This many rows in the table:  " + tableRowCount)
-        }
-        session.setAttribute("score", 0)
+        private AmazonDynamoDBClient amazonDynamoDBClient;
+        amazonDynamoDBClient = new AmazonDynamoDBClient();
+        ScanRequest req = new ScanRequest();
+        req.setTableName("HeroQuiz");
+        ScanResult result = amazonDynamoDBClient.scan(req)
+        List quizItems = result.items
+        int tableRowCount = quizItems.size()
+        session.setAttribute("tableRowCount", Integer.toString(tableRowCount))
+        log.info("This many rows in the table:  " + tableRowCount)
     }
 }
