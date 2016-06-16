@@ -145,6 +145,15 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getHeroQuestion(Slot query, Slot count, final Session session) {
+        getHeroQuestion(query, count, session, "")
+    }
+
+        /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse getHeroQuestion(Slot query, Slot count, final Session session, String speechText) {
 
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();
@@ -156,10 +165,11 @@ public class HeroSpeechlet implements Speechlet {
         Table table = dynamoDB.getTable("HeroQuiz");
         Item item = table.getItem("id", questionIndex);
         def question = item.getString("question")
-
+        speechText += "\n"
+        speechText += question
         // Create the plain text output.
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(question);
+        speech.setText(speechText);
 
         // Create reprompt
         Reprompt reprompt = new Reprompt();
@@ -182,23 +192,11 @@ public class HeroSpeechlet implements Speechlet {
 
         ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
         User player = playerList.get(0)
+        log.info("First player is:  " + player.getName())
         speechText += "\n"
-        speechText += player.getName() + ", this is your question:"
+        speechText += player.getName() + ", "
 
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard();
-        card.setTitle("Hero Quiz");
-        card.setContent(speechText);
-
-        // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
-
-        // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(speech);
-
-        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+        return getHeroQuestion(query, count, session, speechText);
 
     }
 
