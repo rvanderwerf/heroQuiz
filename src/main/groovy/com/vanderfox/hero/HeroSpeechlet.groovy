@@ -17,20 +17,14 @@ import com.amazon.speech.ui.SsmlOutputSpeech
 import com.vanderfox.hero.question.Question
 import com.vanderfox.hero.user.User
 import groovy.transform.CompileStatic
-import groovyx.net.http.RESTClient
-import net.sf.json.JSON
 import net.sf.json.JSONArray
-import net.sf.json.JSONObject
-import net.sf.json.groovy.JsonSlurper
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory
 import com.amazonaws.services.dynamodbv2.document.DynamoDB
 import com.amazonaws.services.dynamodbv2.document.Table
 import com.amazonaws.services.dynamodbv2.document.Item
-import com.amazonaws.services.dynamodbv2.document.ScanFilter
 import com.amazonaws.services.dynamodbv2.model.ScanRequest
 import com.amazonaws.services.dynamodbv2.model.ScanResult
-import com.amazonaws.services.dynamodbv2.document.ItemCollection
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 
 
@@ -121,23 +115,7 @@ public class HeroSpeechlet implements Speechlet {
     private SpeechletResponse getWelcomeResponse() {
         String speechText = "Welcome to Hero Quiz.  Please tell me the first players name.";
 
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard();
-        card.setTitle("Hero Quiz");
-        card.setContent(speechText);
-
-        // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
-        log.info("making welcome audio")
-        SsmlOutputSpeech fancySpeech = new SsmlOutputSpeech()
-        fancySpeech.ssml = "<speak><audio src=\"https://s3.amazonaws.com/vanderfox-sounds/test.mp3\"/> ${speechText}</speak>"
-        log.info("finished welcome audio")
-        // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(fancySpeech);
-
-        return SpeechletResponse.newAskResponse(fancySpeech, reprompt, card);
+        return askResponseFancy(speechText, speechText, "https://s3.amazonaws.com/vanderfox-sounds/test.mp3")
     }
 
     /**
@@ -155,24 +133,13 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getHeroQuestion(Slot query, Slot count, final Session session, String speechText) {
-
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard();
-        card.setTitle("Hero Quiz");
-
         Question question = getRandomQuestion()
         session.setAttribute("lastQuestionAsked", question)
+
         speechText += "\n"
         speechText += question.getText()
-        // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
+        return askResponse(speechText, speechText)
 
-        // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(speech);
-
-        SpeechletResponse.newAskResponse(speech, reprompt, card);
     }
 
     private Question getRandomQuestion() {
@@ -236,10 +203,15 @@ public class HeroSpeechlet implements Speechlet {
             speechText = "How many questions should I ask each player?"
         }
 
+        return askResponse(speechText, speechText)
+
+    }
+
+    private SpeechletResponse askResponse(String cardText, String speechText) {
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();
         card.setTitle("Hero Quiz");
-        card.setContent(speechText);
+        card.setContent(cardText);
 
         // Create the plain text output.
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
@@ -250,7 +222,26 @@ public class HeroSpeechlet implements Speechlet {
         reprompt.setOutputSpeech(speech);
 
         return SpeechletResponse.newAskResponse(speech, reprompt, card);
+    }
 
+    private SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+        card.setContent(cardText);
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+        log.info("making welcome audio")
+        SsmlOutputSpeech fancySpeech = new SsmlOutputSpeech()
+        fancySpeech.ssml = "<speak><audio src=\"${fileUrl}\"/> ${speechText}</speak>"
+        log.info("finished welcome audio")
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(fancySpeech);
+
+        return SpeechletResponse.newAskResponse(fancySpeech, reprompt, card);
     }
 
     /**
@@ -301,7 +292,7 @@ public class HeroSpeechlet implements Speechlet {
         Reprompt reprompt = new Reprompt();
         reprompt.setOutputSpeech(speech);
         if(getQuestionCounter(session) != 0) {
-            return SpeechletResponse.newAskResponse(speech, reprompt, card);
+            return askResponse(speechText, speechText)
         } else {
             return SpeechletResponse.newTellResponse(speech, card);
 
@@ -316,20 +307,7 @@ public class HeroSpeechlet implements Speechlet {
     private SpeechletResponse getHelpResponse() {
         String speechText = "Say quiz me to test your superhero knowledge.";
 
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard();
-        card.setTitle("Hero Quiz");
-        card.setContent(speechText);
-
-        // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
-
-        // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(speech);
-
-        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+        return askResponse(speechText, speechText)
     }
 
     private void incrementScore(Session session) {
