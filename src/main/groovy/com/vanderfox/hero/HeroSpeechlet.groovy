@@ -30,10 +30,8 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 
 
 /**
- * Created by Lee Fox and Ryan Vanderwerf on 3/18/16.
- */
-/**
  * This app shows how to connect to hero with Spring Social, Groovy, and Alexa.
+ * @author Lee Fox and Ryan Vanderwerf
  */
 @CompileStatic
 public class HeroSpeechlet implements Speechlet {
