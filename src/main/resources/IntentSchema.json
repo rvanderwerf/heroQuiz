@@ -1,29 +1,11 @@
 {
   "intents": [
     {
-      "intent": "PlayerNameIntent",
+      "intent": "ResponseIntent",
       "slots": [
         {
           "name": "Answer",
           "type": "AMAZON.LITERAL"
-        }
-      ]
-    },
-    {
-      "intent": "AnswerIntent",
-      "slots": [
-        {
-          "name": "Answer",
-          "type": "AMAZON.LITERAL"
-        }
-      ]
-    },
-    {
-      "intent": "QuestionCountIntent",
-      "slots": [
-        {
-          "name": "Count",
-          "type": "AMAZON.NUMBER"
         }
       ]
     },

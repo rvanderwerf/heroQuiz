@@ -1,5 +1,4 @@
-PlayerNameIntent {test|Answer}
-QuestionCountIntent {Count} questions
-AnswerIntent {test|Answer}
-AnswerIntent {test test|Answer}
-AnswerIntent {I don't know|Answer}
+ResponseIntent {test|Answer}
+ResponseIntent {test test|Answer}
+ResponseIntent {test test test|Answer}
+ResponseIntent {test test test test|Answer}
