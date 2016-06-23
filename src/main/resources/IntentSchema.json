@@ -10,6 +10,15 @@
       ]
     },
     {
+      "intent": "QuestionCountIntent",
+      "slots": [
+        {
+          "name": "Count",
+          "type": "AMAZON.NUMBER"
+        }
+      ]
+    },
+    {
       "intent": "AMAZON.HelpIntent"
     }
   ]
