@@ -84,7 +84,7 @@ public class HeroSpeechlet implements Speechlet {
                     case "setPlayerName":
                         setPlayerName(query, session)
                         break
-                    case "answerQuestion":
+                    case "askQuestion":
                         getAnswer(query, session)
                         break
                     default:
@@ -321,7 +321,7 @@ public class HeroSpeechlet implements Speechlet {
         playerIndex = nextPlayer(session, playerIndex, playerCount)
 
         if(questionCounter != 0 && playerIndex != playerCount) {
-            session.setAttribute("state", "answerQuestion")
+            session.setAttribute("state", "askQuestion")
             speechText += getQuestion(session, speechText);
             return askResponse(speechText, speechText)
         } else {
