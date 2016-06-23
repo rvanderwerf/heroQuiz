@@ -165,8 +165,10 @@ public class HeroSpeechlet implements Speechlet {
         Table table = dynamoDB.getTable("HeroQuiz");
         Item item = table.getItem("id", questionIndex);
         def questionText = item.getString("question")
+        def questionAnswer = item.getString("answer")
         Question question = new Question()
         question.setText(questionText)
+        question.setAnswer(questionAnswer)
         question.setIndex(questionIndex)
         question
     }
@@ -185,7 +187,7 @@ public class HeroSpeechlet implements Speechlet {
         def speechText = "OK.  Got it.  Let’s get started.";
 
         session.setAttribute("state", "askQuestion")
-        speechText += getQuestion(session, speechText);
+        speechText = getQuestion(session, speechText);
         askResponse(speechText, speechText)
 
     }
@@ -230,6 +232,7 @@ public class HeroSpeechlet implements Speechlet {
             session.setAttribute("playerList", playerList)
             int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
             session.setAttribute("playerCount", playerCount++)
+            log.info("playerCount = " + playerCount)
             speechText = "OK.  Tell me the next player’s name or say Last Player to move on."
         } else {
             speechText = "Sorry about that.  Please tell me the next players name again."
@@ -301,15 +304,22 @@ public class HeroSpeechlet implements Speechlet {
 
         def speechText = ""
         int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
-        int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+        int playerCount = playerList.size()
+        log.info("playerIndex:  " + playerIndex)
+        log.info("playerCount:  " + playerCount)
 
         String searchTerm = query.getValue()
-        log.info("Guessed answer is:  " + query.getName())
         log.info("Guessed answer is:  " + query.getValue())
 
         Question question = (Question) session.getAttribute("lastQuestionAsked")
-        def answer = question.getText()
-        int questionCounter = decrementQuestionCounter(session)
+        def answer = question.getAnswer()
+        log.info("correct answer is:  " + answer)
+        int questionCounter = Integer.parseInt((String) session.getAttribute("questionCounter"))
+
+        if(playerIndex == playerCount) {
+            questionCounter = decrementQuestionCounter(session)
+        }
 
         if(searchTerm.toLowerCase() == answer.toLowerCase()) {
             speechText = "You got it right."
@@ -318,11 +328,15 @@ public class HeroSpeechlet implements Speechlet {
             speechText = "You got it wrong.  You said " + query.getValue() + "But I was looking for something else.  "
         }
 
-        playerIndex = nextPlayer(session, playerIndex, playerCount)
+        playerIndex = nextPlayer(session, playerIndex)
 
-        if(questionCounter != 0 && playerIndex != playerCount) {
+        log.info("questionCounter:  " + questionCounter)
+        log.info("playerIndex:  " + playerIndex)
+        log.info("playerCount:  " + playerCount)
+
+        if(questionCounter > 0 && playerIndex != playerCount - 1) {
             session.setAttribute("state", "askQuestion")
-            speechText += getQuestion(session, speechText);
+            speechText = getQuestion(session, speechText);
             return askResponse(speechText, speechText)
         } else {
             String score = scoreGame(session)
@@ -347,9 +361,10 @@ public class HeroSpeechlet implements Speechlet {
         response
     }
 
-    private int nextPlayer(Session session, int playerIndex, int playerCount) {
+    private int nextPlayer(Session session, int playerIndex) {
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
         playerIndex++
-        if (playerIndex == playerCount) {
+        if (playerIndex == playerList.size()) {
             playerIndex = 0
         }
         session.setAttribute("playerIndex", playerIndex)

@@ -5,5 +5,6 @@ package com.vanderfox.hero.question
  */
 class Question {
     String text
+    String answer
     int index
 }
