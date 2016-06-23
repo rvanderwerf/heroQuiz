@@ -31,7 +31,7 @@ public class HeroQuizDynamoDbClient {
         log.info("getting ready to load the item")
         HeroQuizDataItem item = mapper.load(tableItem);
         log.info("Returned item:  " + item)
-        return item;
+        item;
     }
 
     /**
@@ -40,6 +40,6 @@ public class HeroQuizDynamoDbClient {
      * @return
      */
     private DynamoDBMapper createDynamoDBMapper() {
-        return new DynamoDBMapper(dynamoDBClient);
+        new DynamoDBMapper(dynamoDBClient);
     }
 }

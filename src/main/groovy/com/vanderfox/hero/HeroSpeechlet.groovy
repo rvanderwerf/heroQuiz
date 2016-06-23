@@ -14,35 +14,9 @@ import com.amazon.speech.ui.PlainTextOutputSpeech
 import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
-import com.amazonaws.auth.AWSCredentials
-import com.amazonaws.auth.AWSCredentialsProvider
-import com.amazonaws.auth.AWSCredentialsProviderChain
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider
-import com.amazonaws.auth.SystemPropertiesCredentialsProvider
-import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.vanderfox.hero.question.Question
 import com.vanderfox.hero.user.User
 import groovy.transform.CompileStatic
-import groovy.transform.TypeCheckingMode
-import groovyx.net.http.RESTClient
-import net.sf.json.JSON
-import net.sf.json.JSONArray
-import net.sf.json.JSONObject
-import net.sf.json.groovy.JsonSlurper
-import org.grails.datastore.gorm.dynamodb.DynamoDBGormEnhancer
-import org.grails.datastore.gorm.events.AutoTimestampEventListener
-import org.grails.datastore.gorm.events.DomainEventListener
-import org.grails.datastore.mapping.dynamodb.DynamoDBDatastore
-import org.grails.datastore.mapping.dynamodb.config.DynamoDBMappingContext
-import org.grails.datastore.mapping.dynamodb.engine.DynamoDBAssociationInfo
-import org.grails.datastore.mapping.dynamodb.engine.DynamoDBTableResolver
-import org.grails.datastore.mapping.dynamodb.engine.DynamoDBTableResolverFactory
-import org.grails.datastore.mapping.dynamodb.util.DynamoDBTemplate
-import org.grails.datastore.mapping.dynamodb.util.DynamoDBUtil
-import org.grails.datastore.mapping.model.MappingContext
-import org.grails.datastore.mapping.model.PersistentEntity
-import org.grails.datastore.mapping.transactions.DatastoreTransactionManager
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory
 import com.amazonaws.services.dynamodbv2.document.DynamoDB
@@ -51,38 +25,14 @@ import com.amazonaws.services.dynamodbv2.document.Item
 import com.amazonaws.services.dynamodbv2.model.ScanRequest
 import com.amazonaws.services.dynamodbv2.model.ScanResult
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.dynamodbv2.document.ItemCollection
-import org.springframework.context.support.GenericApplicationContext
-import org.springframework.util.StringUtils
-import org.springframework.validation.Errors
-import org.springframework.validation.Validator
 
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors;
-
-
-
-/**
- * Created by Lee Fox and Ryan Vanderwerf on 3/18/16.
- */
 /**
  * This app shows how to connect to hero with Spring Social, Groovy, and Alexa.
+ * @author Lee Fox and Ryan Vanderwerf
  */
 @CompileStatic
 public class HeroSpeechlet implements Speechlet {
     private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class);
-    private AmazonDynamoDBClient amazonDynamoDBClient;
-    private HeroQuizDao heroQuizDao;
-    JSONArray quizBank = null
-    int questionIndex = -1
-    int tableRowCount = 0
-    List quizItems
-
-    //gorm dynamo db
-    static DynamoDBDatastore dynamoDB
-    static org.grails.datastore.mapping.core.Session dynamoSession
-    static Set<String> tableNames = new HashSet<String>() //we keep track of each table to drop at the end because DynamoDB is expensive for a large number of tables
 
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
@@ -90,6 +40,14 @@ public class HeroSpeechlet implements Speechlet {
         log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
         session.setAttribute("playerList", new ArrayList<User>())
+        LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
+        session.setAttribute("askedQuestions", askedQuestions)
+        session.setAttribute("score", 0)
+        session.setAttribute("playerIndex", 0)
+        session.setAttribute("playerCount", 0)
+        session.setAttribute("state", "start")
+        initializeComponents(session)
+
         // any initialization logic goes here
     }
 
@@ -98,10 +56,8 @@ public class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
-        dynamoSession = initializeDynamoDBDatasource(session)
-        initializeComponents(session)
 
-        return getWelcomeResponse();
+        getWelcomeResponse(session);
     }
 
     @Override
@@ -114,28 +70,35 @@ public class HeroSpeechlet implements Speechlet {
         String intentName = (intent != null) ? intent.getName() : null;
         Slot query = intent.getSlot("Answer")
         Slot count = intent.getSlot("Count")
-
+        String state = session.getAttribute("state")
+        log.info("Intent = ${intentName}")
+        log.info("state = ${state}")
+        log.info("query = ${(query == null) ? "null" : query.value}")
+        log.info("count = ${(count == null) ? "null" : count.value}")
         switch (intentName) {
-            case "QuizIntent":
-                getHeroQuestion(query, count, session)
-                break
-            case "PlayerNameIntent":
-                setPlayerName(query, count, session)
-                break
-            case "AnswerIntent":
-                getHeroAnswer(query, count, session)
+            case "ResponseIntent":
+                switch (state) {
+                    case "verifyPlayerName":
+                        verifyPlayerName(query, session)
+                        break
+                    case "setPlayerName":
+                        setPlayerName(query, session)
+                        break
+                    case "answerQuestion":
+                        getAnswer(query, session)
+                        break
+                    default:
+                        getHelpResponse()
+                        break
+                }
                 break
             case "QuestionCountIntent":
-                setQuestionCount(query, count, session)
-                break
-            case "AMAZON.HelpIntent":
-                getHelpResponse()
+                setQuestionCount(count, session)
                 break
             default:
                 getHelpResponse()
                 break
         }
-
     }
 
     @Override
@@ -151,10 +114,11 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getWelcomeResponse() {
+    private SpeechletResponse getWelcomeResponse(final Session session) {
         String speechText = "Welcome to Hero Quiz.  Please tell me the first players name.";
+        session.setAttribute("state", "verifyPlayerName")
+        askResponseFancy(speechText, speechText, "https://s3.amazonaws.com/vanderfox-sounds/test.mp3")
 
-        return askResponseFancy(speechText, speechText, "https://s3.amazonaws.com/vanderfox-sounds/test.mp3")
     }
 
     /**
@@ -162,27 +126,35 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHeroQuestion(Slot query, Slot count, final Session session) {
-        getHeroQuestion(query, count, session, "")
-    }
-
-        /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private SpeechletResponse getHeroQuestion(Slot query, Slot count, final Session session, String speechText) {
-        Question question = getRandomQuestion()
+    private String getQuestion(final Session session, String speechText) {
+        Question question = getRandomUnaskedQuestion(session)
         session.setAttribute("lastQuestionAsked", question)
+
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+        int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
+        User player = playerList.get(playerIndex)
+        speechText += "\n"
+        speechText += player.getName() + ", "
 
         speechText += "\n"
         speechText += question.getText()
-        return askResponse(speechText, speechText)
-
+        speechText
     }
 
-    private Question getRandomQuestion() {
-        questionIndex = (new Random().nextInt() % tableRowCount).abs()
+    private Question getRandomUnaskedQuestion(Session session) {
+        LinkedHashMap<String, Question> askedQuestions = (LinkedHashMap) session.getAttribute("askedQuestions")
+        Question question = getRandomQuestion(session)
+        while(askedQuestions.get(question.getText()) != null) {
+            question = getRandomQuestion(session)
+        }
+        askedQuestions.put(question.getText(), question)
+        session.setAttribute("askedQuestions", askedQuestions)
+        question
+    }
+
+    private Question getRandomQuestion(Session session) {
+        int tableRowCount = Integer.parseInt((String) session.getAttribute("tableRowCount"))
+        int questionIndex = (new Random().nextInt() % tableRowCount).abs()
         log.info("The question index is:  " + questionIndex)
         Question question = getQuestion(questionIndex)
         question
@@ -204,20 +176,17 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse setQuestionCount(Slot query, Slot count, final Session session) {
-        session.setAttribute("questionCounter", Integer.parseInt(count.getValue()))
-        session.setAttribute("numberOfQuestions", Integer.parseInt(count.getValue()))
+    private SpeechletResponse setQuestionCount(Slot count, final Session session) {
+        int questionCount = Integer.parseInt(count.getValue())
+        session.setAttribute("questionCounter", questionCount)
+        session.setAttribute("numberOfQuestions", questionCount)
 
         int numberOfQuestions = getNumberOfQuestions(session)
         def speechText = "OK.  Got it.  Let’s get started.";
 
-        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
-        User player = playerList.get(0)
-        log.info("First player is:  " + player.getName())
-        speechText += "\n"
-        speechText += player.getName() + ", "
-
-        return getHeroQuestion(query, count, session, speechText);
+        session.setAttribute("state", "askQuestion")
+        speechText += getQuestion(session, speechText);
+        askResponse(speechText, speechText)
 
     }
 
@@ -226,24 +195,47 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse setPlayerName(Slot query, Slot count, final Session session) {
+    private SpeechletResponse verifyPlayerName(Slot query, final Session session) {
         String playerName = query.getValue()
+
+        String speechText = ""
+
+        if (!"last player".equalsIgnoreCase(playerName)) {
+            speechText = "I heard ${playerName}.  Is that correct?."
+            session.setAttribute("playerName", playerName)
+            session.setAttribute("state", "setPlayerName")
+        } else {
+            speechText = "How many questions should I ask each player?"
+            session.setAttribute("state", "setQuestionCount")
+        }
+        askResponse(speechText, speechText)
+
+    }
+
+        /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse setPlayerName(Slot query, final Session session) {
+        String playerNameVerfication = query.getValue()
 
         def speechText = ""
 
-        if (!"last player".equalsIgnoreCase(playerName)) {
+        if ("yes".equalsIgnoreCase(playerNameVerfication)) {
             User user = new User()
-            user.setName(playerName)
+            user.setName((String) session.getAttribute("playerName"))
             ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
             playerList.add(user)
             session.setAttribute("playerList", playerList)
+            int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
+            session.setAttribute("playerCount", playerCount++)
             speechText = "OK.  Tell me the next player’s name or say Last Player to move on."
         } else {
-            speechText = "How many questions should I ask each player?"
+            speechText = "Sorry about that.  Please tell me the next players name again."
         }
-
-        return askResponse(speechText, speechText)
-
+        session.setAttribute("state", "verifyPlayerName")
+        askResponse(speechText, speechText)
     }
 
     private SpeechletResponse askResponse(String cardText, String speechText) {
@@ -260,7 +252,24 @@ public class HeroSpeechlet implements Speechlet {
         Reprompt reprompt = new Reprompt();
         reprompt.setOutputSpeech(speech);
 
-        return SpeechletResponse.newAskResponse(speech, reprompt, card);
+        SpeechletResponse.newAskResponse(speech, reprompt, card);
+    }
+
+    private SpeechletResponse tellResponse(String cardText, String speechText) {
+        // Create the Simple card content.
+        SimpleCard card = new SimpleCard();
+        card.setTitle("Hero Quiz");
+        card.setContent(cardText);
+
+        // Create the plain text output.
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+
+        // Create reprompt
+        Reprompt reprompt = new Reprompt();
+        reprompt.setOutputSpeech(speech);
+
+        SpeechletResponse.newTellResponse(speech, card);
     }
 
     private SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
@@ -280,7 +289,7 @@ public class HeroSpeechlet implements Speechlet {
         Reprompt reprompt = new Reprompt();
         reprompt.setOutputSpeech(fancySpeech);
 
-        return SpeechletResponse.newAskResponse(fancySpeech, reprompt, card);
+        SpeechletResponse.newAskResponse(fancySpeech, reprompt, card);
     }
 
     /**
@@ -288,12 +297,11 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHeroAnswer(Slot query, Slot count, final Session session) {
+    private SpeechletResponse getAnswer(Slot query, final Session session) {
 
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard();
-        card.setTitle("Hero Quiz");
         def speechText = ""
+        int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
+        int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
 
         String searchTerm = query.getValue()
         log.info("Guessed answer is:  " + query.getName())
@@ -301,41 +309,59 @@ public class HeroSpeechlet implements Speechlet {
 
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         def answer = question.getText()
-        decrementQuestionCounter(session)
-        String nextPrompt = (getQuestionCounter(session) != 0) ? "Say next question when you're ready to continue." : ""
+        int questionCounter = decrementQuestionCounter(session)
 
         if(searchTerm.toLowerCase() == answer.toLowerCase()) {
-            speechText = "You got it right.  " + nextPrompt
-            incrementScore(session)
-            if(getQuestionCounter(session) == 0) {
-                int score = getScore(session)
-                int numberOfQuestions = getNumberOfQuestions(session);
-                speechText += "You got ${score} out of ${numberOfQuestions} questions correct."
-            }
+            speechText = "You got it right."
+            incrementPlayerScore(session, playerIndex)
         } else {
-            speechText = "You got it wrong.  You said " + query.getValue() + "But I was looking for " + answer + ".  " + nextPrompt
-            log.info("I heard this answer:  " + searchTerm.toLowerCase())
-            log.info("I expected this answer:  " + answer)
-            if(getQuestionCounter(session) == 0) {
-                int score = getScore(session)
-                int numberOfQuestions = getNumberOfQuestions(session);
-                speechText += "You got ${score} out of ${numberOfQuestions} questions correct."
-            }
+            speechText = "You got it wrong.  You said " + query.getValue() + "But I was looking for something else.  "
         }
 
-        // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
+        playerIndex = nextPlayer(session, playerIndex, playerCount)
 
-        // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(speech);
-        if(getQuestionCounter(session) != 0) {
+        if(questionCounter != 0 && playerIndex != playerCount) {
+            session.setAttribute("state", "answerQuestion")
+            speechText += getQuestion(session, speechText);
             return askResponse(speechText, speechText)
         } else {
-            return SpeechletResponse.newTellResponse(speech, card);
-
+            String score = scoreGame(session)
+            speechText += score
+            return tellResponse(speechText, speechText);
         }
+    }
+
+    private String scoreGame(Session session) {
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+        int highScore = 0
+        User highScorer = null
+        String response = ""
+        for(User currentPlayer: playerList) {
+            if(currentPlayer.score > highScore) {
+                highScore = currentPlayer.score
+                highScorer = currentPlayer
+            }
+            response += "${currentPlayer.name} answered ${currentPlayer.score} correctly.\n"
+        }
+        response += "${highScorer.name} is the winner."
+        response
+    }
+
+    private int nextPlayer(Session session, int playerIndex, int playerCount) {
+        playerIndex++
+        if (playerIndex == playerCount) {
+            playerIndex = 0
+        }
+        session.setAttribute("playerIndex", playerIndex)
+        playerIndex
+    }
+
+    private void incrementPlayerScore(Session session, int playerIndex) {
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+        User player = playerList.get(playerIndex)
+        player.score += 1
+        playerList.set(playerIndex, player)
+        session.setAttribute("playerList", playerList)
     }
 
     /**
@@ -346,7 +372,7 @@ public class HeroSpeechlet implements Speechlet {
     private SpeechletResponse getHelpResponse() {
         String speechText = "Say quiz me to test your superhero knowledge.";
 
-        return askResponse(speechText, speechText)
+        askResponse(speechText, speechText)
     }
 
     private void incrementScore(Session session) {
@@ -357,27 +383,23 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     private int getScore(Session session) {
-        return (int) session.getAttribute("score")
+        (int) session.getAttribute("score")
     }
 
-    private void decrementQuestionCounter(Session session) {
+    private int decrementQuestionCounter(Session session) {
         int questionCounter = (int) session.getAttribute("questionCounter")
         questionCounter--
         session.setAttribute("questionCounter", questionCounter)
-
-    }
-
-    private void setQuestionCounter(int questionCounter, Session session) {
-        session.setAttribute("questionCounter", questionCounter)
+        questionCounter
 
     }
 
     private int getQuestionCounter(Session session) {
-        return (int) session.getAttribute("questionCounter")
+        (int) session.getAttribute("questionCounter")
     }
 
     private int getNumberOfQuestions(Session session) {
-        return (int) session.getAttribute("numberOfQuestions")
+        (int) session.getAttribute("numberOfQuestions")
     }
 
 
@@ -385,156 +407,14 @@ public class HeroSpeechlet implements Speechlet {
      * Initializes the instance components if needed.
      */
     private void initializeComponents(Session session) {
-
-        if (amazonDynamoDBClient == null) {
-            amazonDynamoDBClient = new AmazonDynamoDBClient();
-            DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
-            ScanRequest req = new ScanRequest();
-            req.setTableName("HeroQuiz");
-            ScanResult result = amazonDynamoDBClient.scan(req)
-            quizItems = result.items
-            tableRowCount = quizItems.size()
-            log.info("This many rows in the table:  " + tableRowCount)
-        }
-        session.setAttribute("score", 0)
+        AmazonDynamoDBClient amazonDynamoDBClient;
+        amazonDynamoDBClient = new AmazonDynamoDBClient();
+        ScanRequest req = new ScanRequest();
+        req.setTableName("HeroQuiz");
+        ScanResult result = amazonDynamoDBClient.scan(req)
+        List quizItems = result.items
+        int tableRowCount = quizItems.size()
+        session.setAttribute("tableRowCount", Integer.toString(tableRowCount))
+        log.info("This many rows in the table:  " + tableRowCount)
     }
-
-    @CompileStatic(TypeCheckingMode.SKIP)
-    private org.grails.datastore.mapping.core.Session initializeDynamoDBDatasource(Session session) {
-        def env = System.getenv()
-        final userHome = System.getProperty("user.home")
-        def settingsFile = new File(userHome, "aws.properties")
-        /*AWSCredentialsProvider awsCredentialsProvider
-        awsCredentialsProvider = new ProfileCredentialsProvider("vanderfox")
-        AWSCredentials creds = awsCredentialsProvider.getCredentials()*/
-        DefaultAWSCredentialsProviderChain providerChain = new DefaultAWSCredentialsProviderChain()
-        providerChain.refresh()
-
-        log.debug("using credentials: ${providerChain.credentials} accesskey=${providerChain?.credentials?.AWSAccessKeyId} secret=${providerChain?.credentials.AWSSecretKey}")
-        def connectionDetails = [:]
-        //connectionDetails.put(DynamoDBDatastore.ACCESS_KEY, providerChain.credentials.AWSAccessKeyId)
-        //connectionDetails.put(DynamoDBDatastore.SECRET_KEY, providerChain.credentials.AWSSecretKey)
-        connectionDetails.put(DynamoDBDatastore.ACCESS_KEY, "AKIAJIRZKT5SBLZ2JMKQ")
-        connectionDetails.put(DynamoDBDatastore.SECRET_KEY, "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")
-        /*if (settingsFile.exists()) {
-            def props = new Properties()
-            settingsFile.withReader { reader ->
-                props.load(reader)
-            }
-            //connectionDetails.put(DynamoDBDatastore.ACCESS_KEY, props[providerChain.credentials.AWSAccessKeyId])
-            //connectionDetails.put(DynamoDBDatastore.SECRET_KEY, props[providerChain.credentials.AWSSecretKey])
-
-
-        }*/
-
-        connectionDetails.put(DynamoDBDatastore.TABLE_NAME_PREFIX_KEY, "TEST_")
-        connectionDetails.put(DynamoDBDatastore.DELAY_AFTER_WRITES_MS, "3000") //this flag will cause pausing for that many MS after each write - to fight eventual consistency
-
-        DynamoDBDatastore dynamoDB = new DynamoDBDatastore(new DynamoDBMappingContext(), connectionDetails)
-        def ctx = new GenericApplicationContext()
-        ctx.refresh()
-        dynamoDB.applicationContext = ctx
-        dynamoDB.afterPropertiesSet()
-
-        def classes = [HeroQuizDomain.class,HeroQuizItemDomain.class]
-        for (cls in classes) {
-            dynamoDB.mappingContext.addPersistentEntity(cls)
-        }
-        //    dynamoDB.mappingContext.addPersistentEntity(HeroQuizItemDomain.class)
-        cleanOrCreateDomainsIfNeeded(classes, dynamoDB.mappingContext, dynamoDB)
-
-        PersistentEntity entity = dynamoDB.mappingContext.persistentEntities.find { PersistentEntity e -> e.name.contains("TestEntity")}
-
-        dynamoDB.mappingContext.addEntityValidator(entity, [
-                supports: { Class c -> true },
-                validate: { Object o, Errors errors ->
-                    if (!StringUtils.hasText(o.name)) {
-                        errors.rejectValue("name", "name.is.blank")
-                    }
-                }
-        ] as Validator)
-
-        def enhancer = new DynamoDBGormEnhancer(dynamoDB, new DatastoreTransactionManager(datastore: dynamoDB))
-        enhancer.enhance()
-
-        dynamoDB.mappingContext.addMappingContextListener({ e ->
-            enhancer.enhance e
-        } as MappingContext.Listener)
-
-        dynamoDB.applicationContext.addApplicationListener new DomainEventListener(dynamoDB)
-        dynamoDB.applicationContext.addApplicationListener new AutoTimestampEventListener(dynamoDB)
-
-        dynamoSession = dynamoDB.connect()
-        log.debug("successfully created dynamo db session!")
-        return dynamoSession
-
-
-    }
-
-    /**
-     * Creates AWS domain if AWS domain corresponding to a test entity class does not exist, or cleans it if it does exist.
-     * @param domainClasses
-     * @param mappingContext
-     * @param dynamoDBDatastore
-    */
-    @CompileStatic(TypeCheckingMode.SKIP)
-    static void cleanOrCreateDomainsIfNeeded(List domainClasses, MappingContext mappingContext, DynamoDBDatastore dynamoDBDatastore) {
-        DynamoDBTemplate template = dynamoDBDatastore.getDynamoDBTemplate()
-        List<String> existingTables = template.listTables()
-        DynamoDBTableResolverFactory resolverFactory = new DynamoDBTableResolverFactory()
-
-        ExecutorService executorService = Executors.newFixedThreadPool(10) //dynamodb allows no more than 10 tables to be created simultaneously
-        CountDownLatch latch = new CountDownLatch(domainClasses.size())
-        for (dc in domainClasses) {
-            def domainClass = dc //explicitly declare local variable which we will be using from the thread
-            //do dynamoDB work in parallel threads for each entity to speed things up
-            executorService.execute({
-                try {
-                    PersistentEntity entity = mappingContext.getPersistentEntity(domainClass.getName())
-                    DynamoDBTableResolver tableResolver = resolverFactory.buildResolver(entity, dynamoDBDatastore)
-                    def tables = tableResolver.getAllTablesForEntity()
-                    tables.each { table ->
-                        tableNames.add(table)
-                        clearOrCreateTable(dynamoDBDatastore, existingTables, table)
-                        //create domains for associations
-                        entity.getAssociations().each { association ->
-                            DynamoDBAssociationInfo associationInfo = dynamoDBDatastore.getAssociationInfo(association)
-                            if (associationInfo) {
-                                tableNames.add(associationInfo.getTableName())
-                                clearOrCreateTable(dynamoDBDatastore, existingTables, associationInfo.getTableName())
-                            }
-                        }
-                    }
-                } finally {
-                    latch.countDown()
-                }
-            } as Runnable)
-        }
-        latch.await()
-    }
-
-    @CompileStatic(TypeCheckingMode.SKIP)
-    static clearOrCreateTable(DynamoDBDatastore datastore, def existingTables, String tableName) {
-        if (existingTables.contains(tableName)) {
-            datastore.getDynamoDBTemplate().deleteAllItems(tableName) //delete all items there
-        } else {
-            //create it
-            datastore.getDynamoDBTemplate().createTable(tableName,
-                    DynamoDBUtil.createIdKeySchema(),
-                    DynamoDBUtil.createDefaultProvisionedThroughput(datastore)
-            )
-        }
-    }
-
-
-    /*protected AWSCredentialsProvider getCredentialsProvider() {
-        new AWSCredentialsProviderChain(
-                new EnvironmentVariableCredentialsProvider(),
-                new SystemPropertiesCredentialsProvider(),
-                profileConfigured ? new ProfileCredentialsProvider(profile) : EMPTY_PROVIDER,
-                nonDefaultProfile ? new ProfileCredentialsProvider(DEFAULT_PROFILE) : EMPTY_PROVIDER,
-                new InstanceProfileCredentialsProvider()
-        )
-    }*/
-
 }

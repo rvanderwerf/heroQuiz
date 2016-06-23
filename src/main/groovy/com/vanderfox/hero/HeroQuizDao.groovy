@@ -26,6 +26,6 @@ public class HeroQuizDao {
             return null;
         }
 
-        return item
+        item
     }
 }
