@@ -317,7 +317,7 @@ public class HeroSpeechlet implements Speechlet {
         log.info("correct answer is:  " + answer)
         int questionCounter = Integer.parseInt((String) session.getAttribute("questionCounter"))
 
-        if(playerIndex == playerCount) {
+        if(playerIndex + 1 == playerCount) {
             questionCounter = decrementQuestionCounter(session)
         }
 
@@ -334,30 +334,42 @@ public class HeroSpeechlet implements Speechlet {
         log.info("playerIndex:  " + playerIndex)
         log.info("playerCount:  " + playerCount)
 
-        if(questionCounter > 0 && playerIndex != playerCount - 1) {
+        if(questionCounter > 0) {
             session.setAttribute("state", "askQuestion")
             speechText = getQuestion(session, speechText);
             return askResponse(speechText, speechText)
         } else {
-            String score = scoreGame(session)
-            speechText += score
-            return tellResponse(speechText, speechText);
+            if(playerIndex == 0) {
+                String score = scoreGame(session)
+                speechText += score
+                return tellResponse(speechText, speechText)
+            }
         }
     }
 
     private String scoreGame(Session session) {
         ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
         int highScore = 0
+        boolean tiedGame = false
         User highScorer = null
-        String response = ""
+        String response = "\n\n"
         for(User currentPlayer: playerList) {
             if(currentPlayer.score > highScore) {
                 highScore = currentPlayer.score
                 highScorer = currentPlayer
+                tiedGame = false
+            } else {
+                if(currentPlayer.score == highScore) {
+                    tiedGame = true
+                }
             }
             response += "${currentPlayer.name} answered ${currentPlayer.score} correctly.\n"
         }
-        response += "${highScorer.name} is the winner."
+        if(tiedGame) {
+            response += "It was a tied game."
+        } else {
+            response += "${highScorer.name} is the winner."
+        }
         response
     }
 
@@ -394,7 +406,6 @@ public class HeroSpeechlet implements Speechlet {
         int score = (int) session.getAttribute("score")
         score++
         session.setAttribute("score", score)
-
     }
 
     private int getScore(Session session) {
