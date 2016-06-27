@@ -193,6 +193,7 @@ public class HeroSpeechlet implements Speechlet {
         } else {
             int questionCount = Integer.parseInt((String) session.getAttribute("questionCounter"))
             speechText = "OK, I'll now ask each player ${questionCount} questions.\n"
+            speechText = getQuestion(session, speechText);
             session.setAttribute("state", "askQuestion")
         }
         askResponse(speechText, speechText)
