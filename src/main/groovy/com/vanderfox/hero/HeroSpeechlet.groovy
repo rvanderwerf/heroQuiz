@@ -44,7 +44,7 @@ public class HeroSpeechlet implements Speechlet {
                 session.getSessionId())
         session.setAttribute("playerList", new ArrayList<User>())
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
-        session.setAttribute("askedQuestions", getNumberOfQuestions())
+        session.setAttribute("askedQuestions", askedQuestions)
         session.setAttribute("questionCounter", 10)
         session.setAttribute("score", 0)
         session.setAttribute("playerIndex", 0)
