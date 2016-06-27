@@ -84,7 +84,7 @@ public class HeroSpeechlet implements Speechlet {
                     case "setPlayerName":
                         setPlayerName(query, session)
                         break
-                    case "answerQuestion":
+                    case "askQuestion":
                         getAnswer(query, session)
                         break
                     default:
@@ -94,6 +94,9 @@ public class HeroSpeechlet implements Speechlet {
                 break
             case "QuestionCountIntent":
                 setQuestionCount(count, session)
+                break
+            case "EndGameIntent":
+                endGame()
                 break
             default:
                 getHelpResponse()
@@ -165,8 +168,10 @@ public class HeroSpeechlet implements Speechlet {
         Table table = dynamoDB.getTable("HeroQuiz");
         Item item = table.getItem("id", questionIndex);
         def questionText = item.getString("question")
+        def questionAnswer = item.getString("answer")
         Question question = new Question()
         question.setText(questionText)
+        question.setAnswer(questionAnswer)
         question.setIndex(questionIndex)
         question
     }
@@ -185,7 +190,7 @@ public class HeroSpeechlet implements Speechlet {
         def speechText = "OK.  Got it.  Let’s get started.";
 
         session.setAttribute("state", "askQuestion")
-        speechText += getQuestion(session, speechText);
+        speechText = getQuestion(session, speechText);
         askResponse(speechText, speechText)
 
     }
@@ -230,6 +235,7 @@ public class HeroSpeechlet implements Speechlet {
             session.setAttribute("playerList", playerList)
             int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
             session.setAttribute("playerCount", playerCount++)
+            log.info("playerCount = " + playerCount)
             speechText = "OK.  Tell me the next player’s name or say Last Player to move on."
         } else {
             speechText = "Sorry about that.  Please tell me the next players name again."
@@ -301,15 +307,22 @@ public class HeroSpeechlet implements Speechlet {
 
         def speechText = ""
         int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
-        int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+        int playerCount = playerList.size()
+        log.info("playerIndex:  " + playerIndex)
+        log.info("playerCount:  " + playerCount)
 
         String searchTerm = query.getValue()
-        log.info("Guessed answer is:  " + query.getName())
         log.info("Guessed answer is:  " + query.getValue())
 
         Question question = (Question) session.getAttribute("lastQuestionAsked")
-        def answer = question.getText()
-        int questionCounter = decrementQuestionCounter(session)
+        def answer = question.getAnswer()
+        log.info("correct answer is:  " + answer)
+        int questionCounter = Integer.parseInt((String) session.getAttribute("questionCounter"))
+
+        if(playerIndex + 1 == playerCount) {
+            questionCounter = decrementQuestionCounter(session)
+        }
 
         if(searchTerm.toLowerCase() == answer.toLowerCase()) {
             speechText = "You got it right."
@@ -318,38 +331,55 @@ public class HeroSpeechlet implements Speechlet {
             speechText = "You got it wrong.  You said " + query.getValue() + "But I was looking for something else.  "
         }
 
-        playerIndex = nextPlayer(session, playerIndex, playerCount)
+        playerIndex = nextPlayer(session, playerIndex)
 
-        if(questionCounter != 0 && playerIndex != playerCount) {
-            session.setAttribute("state", "answerQuestion")
-            speechText += getQuestion(session, speechText);
+        log.info("questionCounter:  " + questionCounter)
+        log.info("playerIndex:  " + playerIndex)
+        log.info("playerCount:  " + playerCount)
+
+        if(questionCounter > 0) {
+            session.setAttribute("state", "askQuestion")
+            speechText = getQuestion(session, speechText);
             return askResponse(speechText, speechText)
         } else {
-            String score = scoreGame(session)
-            speechText += score
-            return tellResponse(speechText, speechText);
+            if(playerIndex == 0) {
+                String score = scoreGame(session)
+                speechText += score
+                return tellResponse(speechText, speechText)
+            }
         }
     }
 
     private String scoreGame(Session session) {
         ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
         int highScore = 0
+        boolean tiedGame = false
         User highScorer = null
-        String response = ""
+        String response = "\n\n"
         for(User currentPlayer: playerList) {
             if(currentPlayer.score > highScore) {
                 highScore = currentPlayer.score
                 highScorer = currentPlayer
+                tiedGame = false
+            } else {
+                if(currentPlayer.score == highScore) {
+                    tiedGame = true
+                }
             }
             response += "${currentPlayer.name} answered ${currentPlayer.score} correctly.\n"
         }
-        response += "${highScorer.name} is the winner."
+        if(tiedGame) {
+            response += "It was a tied game."
+        } else {
+            response += "${highScorer.name} is the winner."
+        }
         response
     }
 
-    private int nextPlayer(Session session, int playerIndex, int playerCount) {
+    private int nextPlayer(Session session, int playerIndex) {
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
         playerIndex++
-        if (playerIndex == playerCount) {
+        if (playerIndex == playerList.size()) {
             playerIndex = 0
         }
         session.setAttribute("playerIndex", playerIndex)
@@ -375,11 +405,16 @@ public class HeroSpeechlet implements Speechlet {
         askResponse(speechText, speechText)
     }
 
+    private SpeechletResponse endGame() {
+        String speechText = "OK.  I will stop the game now.  Please try again soon.";
+
+        tellResponse(speechText, speechText)
+    }
+
     private void incrementScore(Session session) {
         int score = (int) session.getAttribute("score")
         score++
         session.setAttribute("score", score)
-
     }
 
     private int getScore(Session session) {
