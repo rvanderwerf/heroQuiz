@@ -95,6 +95,9 @@ public class HeroSpeechlet implements Speechlet {
             case "QuestionCountIntent":
                 setQuestionCount(count, session)
                 break
+            case "EndGameIntent":
+                endGame()
+                break
             default:
                 getHelpResponse()
                 break
@@ -400,6 +403,12 @@ public class HeroSpeechlet implements Speechlet {
         String speechText = "Say quiz me to test your superhero knowledge.";
 
         askResponse(speechText, speechText)
+    }
+
+    private SpeechletResponse endGame() {
+        String speechText = "OK.  I will stop the game now.  Please try again soon.";
+
+        tellResponse(speechText, speechText)
     }
 
     private void incrementScore(Session session) {
