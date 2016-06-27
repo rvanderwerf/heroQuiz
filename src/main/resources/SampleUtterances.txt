@@ -3,5 +3,4 @@ ResponseIntent {last player|Answer}
 ResponseIntent {test test|Answer}
 ResponseIntent {test test test|Answer}
 ResponseIntent {test test test test|Answer}
-QuestionCountIntent {Count}
 QuestionCountIntent {Count} questions

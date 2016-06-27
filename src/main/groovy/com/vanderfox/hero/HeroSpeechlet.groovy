@@ -42,6 +42,7 @@ public class HeroSpeechlet implements Speechlet {
         session.setAttribute("playerList", new ArrayList<User>())
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
         session.setAttribute("askedQuestions", askedQuestions)
+        session.setAttribute("questionCounter", 10)
         session.setAttribute("score", 0)
         session.setAttribute("playerIndex", 0)
         session.setAttribute("playerCount", 0)
@@ -86,9 +87,6 @@ public class HeroSpeechlet implements Speechlet {
                         break
                     case "askQuestion":
                         getAnswer(query, session)
-                        break
-                    case "setQuestionCount":
-                        setQuestionCount(count, session)
                         break
                     default:
                         getHelpResponse()
@@ -183,25 +181,6 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse setQuestionCount(Slot count, final Session session) {
-        int questionCount = Integer.parseInt(count.getValue())
-        session.setAttribute("questionCounter", questionCount)
-        session.setAttribute("numberOfQuestions", questionCount)
-
-        int numberOfQuestions = getNumberOfQuestions(session)
-        def speechText = "OK.  Got it.  Let’s get started.";
-
-        session.setAttribute("state", "askQuestion")
-        speechText = getQuestion(session, speechText);
-        askResponse(speechText, speechText)
-
-    }
-
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
     private SpeechletResponse verifyPlayerName(Slot query, final Session session) {
         String playerName = query.getValue()
 
@@ -213,7 +192,7 @@ public class HeroSpeechlet implements Speechlet {
             session.setAttribute("state", "setPlayerName")
         } else {
             speechText = "How many questions should I ask each player?"
-            session.setAttribute("state", "setQuestionCount")
+            session.setAttribute("state", "askQuestion")
         }
         askResponse(speechText, speechText)
 
