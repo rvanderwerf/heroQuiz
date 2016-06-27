@@ -87,19 +87,21 @@ public class HeroSpeechlet implements Speechlet {
                     case "askQuestion":
                         getAnswer(query, session)
                         break
+                    case "setQuestionCount":
+                        setQuestionCount(count, session)
+                        break
                     default:
                         getHelpResponse()
                         break
                 }
                 break
-            case "QuestionCountIntent":
-                setQuestionCount(count, session)
-                break
             case "EndGameIntent":
                 endGame()
                 break
-            default:
+            case "HelpIntent":
                 getHelpResponse()
+            default:
+                didNotUnderstand()
                 break
         }
     }
@@ -400,7 +402,13 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getHelpResponse() {
-        String speechText = "Say quiz me to test your superhero knowledge.";
+        String speechText = "Say Exit Game or Quit Game to stop the game.  Please follow the prompts I give you, and be sure to speak clearly.";
+
+        askResponse(speechText, speechText)
+    }
+
+    private SpeechletResponse didNotUnderstand() {
+        String speechText = "I'm sorry.  I didn't understand what you said.  Say help me for help.";
 
         askResponse(speechText, speechText)
     }
@@ -436,7 +444,6 @@ public class HeroSpeechlet implements Speechlet {
     private int getNumberOfQuestions(Session session) {
         (int) session.getAttribute("numberOfQuestions")
     }
-
 
     /**
      * Initializes the instance components if needed.
