@@ -34,6 +34,9 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 public class HeroSpeechlet implements Speechlet {
     private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class);
 
+
+
+
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
             throws SpeechletException {
@@ -41,7 +44,7 @@ public class HeroSpeechlet implements Speechlet {
                 session.getSessionId())
         session.setAttribute("playerList", new ArrayList<User>())
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
-        session.setAttribute("askedQuestions", askedQuestions)
+        session.setAttribute("askedQuestions", getNumberOfQuestions())
         session.setAttribute("questionCounter", 10)
         session.setAttribute("score", 0)
         session.setAttribute("playerIndex", 0)
@@ -421,8 +424,17 @@ public class HeroSpeechlet implements Speechlet {
         (int) session.getAttribute("questionCounter")
     }
 
-    private int getNumberOfQuestions(Session session) {
-        (int) session.getAttribute("numberOfQuestions")
+    private int getNumberOfQuestions() {
+        InputStream stream = com.vanderfox.hero.HeroSpeechlet.class.getClassLoader()getResourceAsStream("springSocial.properties")
+        final Properties properties = new Properties();
+        properties.load(stream);
+
+        def property = properties.getProperty("numberOfQuestions")
+        if (!property) {
+            return 2
+        }
+        log.info("setting number of questions from config: ${property}")
+        property.toInteger()
     }
 
     /**
