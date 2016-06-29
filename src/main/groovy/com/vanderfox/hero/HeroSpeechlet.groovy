@@ -392,16 +392,16 @@ public class HeroSpeechlet implements Speechlet {
         String state = session.getAttribute("state")
         switch (state) {
             case "verifyPlayerName":
-                speechText = "You can say quit or cancel to stop the game at any time.  Right now, we are verifying player names.  Please say yes or no to verify the last player added.";
+                speechText = "You can say stop or cancel to end the game at any time.  Right now, we are verifying player names.  Please say yes or no to verify the last player added.";
                 break
             case "setPlayerName":
-                speechText = "You can say quit or cancel to stop the game at any time.  Right now, we are adding players to the game.  Say the next players name or say last player to move on.";
+                speechText = "You can say stop or cancel to end the game at any time.  Right now, we are adding players to the game.  Say the next players name or say last player to move on.";
                 break
             case "askQuestion":
-                speechText = "You can say quit or cancel to stop the game at any time.  Right now, we are in the middle of a game.  All you need to do is give your answer to the question.";
+                speechText = "You can say stop or cancel to end the game at any time.  Right now, we are in the middle of a game.  All you need to do is give your answer to the question.";
                 break
             default:
-                speechText = "You can say quit or cancel to stop the game at any time.  Right now, we are adding players to the game.  Say the next players name or say last player to move on.";
+                speechText = "You can say stop or cancel to end the game at any time.  Right now, we are adding players to the game.  Say the next players name or say last player to move on.";
                 break
         }
         askResponse(speechText, speechText)
