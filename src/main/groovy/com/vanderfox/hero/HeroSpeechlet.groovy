@@ -79,6 +79,13 @@ public class HeroSpeechlet implements Speechlet {
         log.info("state = ${state}")
         log.info("query = ${(query == null) ? "null" : query.value}")
         log.info("count = ${(count == null) ? "null" : count.value}")
+        if("stop".equalsIgnoreCase(query.value) ||
+                "cancel".equals(query.value)) {
+            return endGame()
+        }
+        if("help".equalsIgnoreCase(query.value)) {
+            return getHelpResponse(session)
+        }
         switch (intentName) {
             case "ResponseIntent":
                 switch (state) {
@@ -92,15 +99,10 @@ public class HeroSpeechlet implements Speechlet {
                         getAnswer(query, session)
                         break
                     default:
-                        getHelpResponse()
+                        getHelpResponse(session)
                         break
                 }
                 break
-            case "EndGameIntent":
-                endGame()
-                break
-            case "HelpIntent":
-                getHelpResponse()
             default:
                 didNotUnderstand()
                 break
@@ -385,9 +387,23 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHelpResponse() {
-        String speechText = "Say Exit Game or Quit Game to stop the game.  Please follow the prompts I give you, and be sure to speak clearly.";
-
+    private SpeechletResponse getHelpResponse(Session session) {
+        String speechText = ""
+        String state = session.getAttribute("state")
+        switch (state) {
+            case "verifyPlayerName":
+                speechText = "You can say quit or cancel to stop the game at any time.  Right now, we are verifying player names.  Please say yes or no to verify the last player added.";
+                break
+            case "setPlayerName":
+                speechText = "You can say quit or cancel to stop the game at any time.  Right now, we are adding players to the game.  Say the next players name or say last player to move on.";
+                break
+            case "askQuestion":
+                speechText = "You can say quit or cancel to stop the game at any time.  Right now, we are in the middle of a game.  All you need to do is give your answer to the question.";
+                break
+            default:
+                speechText = "You can say quit or cancel to stop the game at any time.  Right now, we are adding players to the game.  Say the next players name or say last player to move on.";
+                break
+        }
         askResponse(speechText, speechText)
     }
 
