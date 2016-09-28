@@ -34,9 +34,6 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 public class HeroSpeechlet implements Speechlet {
     private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class);
 
-
-
-
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
             throws SpeechletException {
@@ -61,7 +58,7 @@ public class HeroSpeechlet implements Speechlet {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
 
-        getWelcomeResponse(session);
+        getWelcomeResponse();
     }
 
     @Override
@@ -72,36 +69,34 @@ public class HeroSpeechlet implements Speechlet {
 
         Intent intent = request.getIntent();
         String intentName = (intent != null) ? intent.getName() : null;
-        Slot query = intent.getSlot("Answer")
-        Slot count = intent.getSlot("Count")
-        String state = session.getAttribute("state")
-        log.info("Intent = ${intentName}")
-        log.info("state = ${state}")
-        log.info("query = ${(query == null) ? "null" : query.value}")
-        log.info("count = ${(count == null) ? "null" : count.value}")
-        if("stop".equalsIgnoreCase(query.value) ||
-                "cancel".equals(query.value)) {
-            return endGame()
-        }
-        if("help".equalsIgnoreCase(query.value)) {
-            return getHelpResponse(session)
-        }
+        log.debug("Intent = " + intentName)
         switch (intentName) {
-            case "ResponseIntent":
-                switch (state) {
-                    case "verifyPlayerName":
-                        verifyPlayerName(query, session)
-                        break
-                    case "setPlayerName":
-                        setPlayerName(query, session)
-                        break
-                    case "askQuestion":
-                        getAnswer(query, session)
-                        break
-                    default:
-                        getHelpResponse(session)
-                        break
-                }
+            case "PlayerNameIntent":
+                verifyPlayerName(intent.getSlot("PLAYER_NAME"), session)
+                break
+            case "AnswerIntent":
+                getAnswer(intent.getSlot("Answer"), session)
+                break
+            case "AMAZON.YesIntent":
+                setPlayerName(intent.getSlot("PLAYER_NAME"), session)
+                break
+            case "AMAZON.NoIntent":
+                askForPlayerNameAgain(intent.getSlot("PLAYER_NAME"), session)
+                break
+            case "AMAZON.StartOverIntent":
+                askQuestion(intent.getSlot("PLAYER_NAME"), session)
+                break
+            case "AMAZON.HelpIntent":
+                getHelpResponse(session)
+                break
+            case "AMAZON.CancelIntent":
+                sayGoodbye()
+                break
+            case "AMAZON.RepeatIntent":
+                repeatQuestion(session)
+                break
+            case "AMAZON.StopIntent":
+                sayGoodbye()
                 break
             default:
                 didNotUnderstand()
@@ -122,9 +117,18 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getWelcomeResponse(final Session session) {
-        String speechText = "Welcome to Hero Quiz.  Please tell me the first players name.";
-        session.setAttribute("state", "verifyPlayerName")
+    private SpeechletResponse sayGoodbye() {
+        String speechText = "OK.  I'm going to stop the game now.";
+        tellResponse(speechText, speechText)
+    }
+
+    /**
+     * Creates and returns a {@code SpeechletResponse} with a welcome message.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse getWelcomeResponse() {
+        String speechText = "Welcome to Hero Quiz.  Please say the first players name.";
         askResponseFancy(speechText, speechText, "https://s3.amazonaws.com/vanderfox-sounds/test.mp3")
 
     }
@@ -145,17 +149,22 @@ public class HeroSpeechlet implements Speechlet {
         speechText += player.getName() + ", "
 
         speechText += "\n"
-        speechText += question.getText()
+        speechText += question.getQuestion() + "\n"
+        String[] options = question.getOptions()
+        int index = 1
+        for(String option: options) {
+            speechText += (index++) + "\n\n\n\n" + option + "\n\n\n"
+        }
         speechText
     }
 
     private Question getRandomUnaskedQuestion(Session session) {
         LinkedHashMap<String, Question> askedQuestions = (LinkedHashMap) session.getAttribute("askedQuestions")
         Question question = getRandomQuestion(session)
-        while(askedQuestions.get(question.getText()) != null) {
+        while(askedQuestions.get(question.getQuestion()) != null) {
             question = getRandomQuestion(session)
         }
-        askedQuestions.put(question.getText(), question)
+        askedQuestions.put(question.getQuestion(), question)
         session.setAttribute("askedQuestions", askedQuestions)
         question
     }
@@ -171,13 +180,23 @@ public class HeroSpeechlet implements Speechlet {
     private Question getQuestion(int questionIndex) {
         DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
         Table table = dynamoDB.getTable("HeroQuiz");
-        Item item = table.getItem("id", questionIndex);
-        def questionText = item.getString("question")
-        def questionAnswer = item.getString("answer")
+        Item item = table.getItem("Id", questionIndex);
+        def questionText = item.getString("Question")
+        def questionAnswer = item.getInt("answer")
+        def options = new String[4]
+        options[0] = item.getString("option1")
+        options[1] = item.getString("option2")
+        options[2] = item.getString("option3")
+        options[3] = item.getString("option4")
         Question question = new Question()
-        question.setText(questionText)
-        question.setAnswer(questionAnswer)
+        question.setQuestion(questionText)
+        question.setOptions(options)
+        question.setAnswer(questionAnswer - 1)
         question.setIndex(questionIndex)
+        log.info("question retrieved:  " + question.getIndex())
+        log.info("question retrieved:  " + question.getQuestion())
+        log.info("question retrieved:  " + question.getAnswer())
+        log.info("question retrieved:  " + question.getOptions().length)
         question
     }
 
@@ -191,44 +210,43 @@ public class HeroSpeechlet implements Speechlet {
 
         String speechText = ""
 
-        if (!"last player".equalsIgnoreCase(playerName)) {
-            speechText = "I heard ${playerName}.  Is that correct?."
-            session.setAttribute("playerName", playerName)
-            session.setAttribute("state", "setPlayerName")
-        } else {
-            int questionCount = Integer.parseInt((String) session.getAttribute("questionCounter"))
-            speechText = "OK, I'll now ask each player ${questionCount} questions.\n"
-            speechText = getQuestion(session, speechText);
-            session.setAttribute("state", "askQuestion")
-        }
+        speechText = "I heard ${playerName}.  Is that correct?."
+        session.setAttribute("playerName", playerName)
+        session.setAttribute("state", "setPlayerName")
+
         askResponse(speechText, speechText)
 
     }
 
-        /**
+    /**
      * Creates a {@code SpeechletResponse} for the hello intent.
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse setPlayerName(Slot query, final Session session) {
-        String playerNameVerfication = query.getValue()
-
         def speechText = ""
 
-        if ("yes".equalsIgnoreCase(playerNameVerfication)) {
-            User user = new User()
-            user.setName((String) session.getAttribute("playerName"))
-            ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
-            playerList.add(user)
-            session.setAttribute("playerList", playerList)
-            int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
-            session.setAttribute("playerCount", playerCount++)
-            log.info("playerCount = " + playerCount)
-            speechText = "OK.  Tell me the next player’s name or say Last Player to move on."
-        } else {
-            speechText = "Sorry about that.  Please tell me the next players name again."
-        }
+        User user = new User()
+        user.setName((String) session.getAttribute("playerName"))
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+        playerList.add(user)
+        session.setAttribute("playerList", playerList)
+        int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
+        session.setAttribute("playerCount", playerCount++)
+        log.info("playerCount = " + playerCount)
+        speechText = "OK.  Tell me the next player’s name or say start game to move on."
         session.setAttribute("state", "verifyPlayerName")
+        askResponse(speechText, speechText)
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse askForPlayerNameAgain(Slot query, final Session session) {
+        def speechText = ""
+        speechText = "Sorry about that.  Please tell me the next players name again."
         askResponse(speechText, speechText)
     }
 
@@ -291,16 +309,60 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
+    private SpeechletResponse repeatQuestion(final Session session) {
+        String playerName = (String) session.getAttribute("playerName")
+        Question question = (Question) session.getAttribute("lastQuestionAsked")
+        String speechText = ""
+        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
+        int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
+        User player = playerList.get(playerIndex)
+        speechText += "\n"
+        speechText += player.getName() + ", "
+
+        speechText += "\n"
+        speechText += question.getQuestion() + "\n"
+        String[] options = question.getOptions()
+        int index = 1
+        for(String option: options) {
+            speechText += (index++) + "\n\n\n\n" + option + "\n\n\n"
+        }
+        askResponse(speechText, speechText)
+
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse askQuestion(Slot query, final Session session) {
+        String playerName = (String) session.getAttribute("playerName")
+        String speechText = ""
+
+        int questionCount = Integer.parseInt((String) session.getAttribute("questionCounter"))
+        speechText = "OK, I'll now ask each player ${questionCount} questions.\n"
+        speechText = getQuestion(session, speechText);
+        session.setAttribute("state", "askQuestion")
+        log.info("Finished grabbing question and about to reply")
+        log.info("Responding with:  " + speechText)
+        askResponse(speechText, speechText)
+
+    }
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
     private SpeechletResponse getAnswer(Slot query, final Session session) {
 
-        def speechText = ""
+        def speechText
         int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
         ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
         int playerCount = playerList.size()
         log.info("playerIndex:  " + playerIndex)
         log.info("playerCount:  " + playerCount)
 
-        String searchTerm = query.getValue()
+        int guessedAnswer = Integer.parseInt(query.getValue()) - 1
         log.info("Guessed answer is:  " + query.getValue())
 
         Question question = (Question) session.getAttribute("lastQuestionAsked")
@@ -312,11 +374,11 @@ public class HeroSpeechlet implements Speechlet {
             questionCounter = decrementQuestionCounter(session)
         }
 
-        if(searchTerm.toLowerCase() == answer.toLowerCase()) {
+        if(guessedAnswer == answer) {
             speechText = "You got it right."
             incrementPlayerScore(session, playerIndex)
         } else {
-            speechText = "You got it wrong.  You said " + query.getValue() + "But I was looking for something else.  "
+            speechText = "You got it wrong."
         }
 
         playerIndex = nextPlayer(session, playerIndex)
@@ -389,34 +451,13 @@ public class HeroSpeechlet implements Speechlet {
      */
     private SpeechletResponse getHelpResponse(Session session) {
         String speechText = ""
-        String state = session.getAttribute("state")
-        switch (state) {
-            case "verifyPlayerName":
-                speechText = "You can say stop or cancel to end the game at any time.  Right now, we are verifying player names.  Please say yes or no to verify the last player added.";
-                break
-            case "setPlayerName":
-                speechText = "You can say stop or cancel to end the game at any time.  Right now, we are adding players to the game.  Say the next players name or say last player to move on.";
-                break
-            case "askQuestion":
-                speechText = "You can say stop or cancel to end the game at any time.  Right now, we are in the middle of a game.  All you need to do is give your answer to the question.";
-                break
-            default:
-                speechText = "You can say stop or cancel to end the game at any time.  Right now, we are adding players to the game.  Say the next players name or say last player to move on.";
-                break
-        }
+        speechText = "You can say stop or cancel to end the game at any time.  I will guide you through the game.  If you need a question repeated, say repeat question.";
         askResponse(speechText, speechText)
     }
 
     private SpeechletResponse didNotUnderstand() {
         String speechText = "I'm sorry.  I didn't understand what you said.  Say help me for help.";
-
         askResponse(speechText, speechText)
-    }
-
-    private SpeechletResponse endGame() {
-        String speechText = "OK.  I will stop the game now.  Please try again soon.";
-
-        tellResponse(speechText, speechText)
     }
 
     private void incrementScore(Session session) {

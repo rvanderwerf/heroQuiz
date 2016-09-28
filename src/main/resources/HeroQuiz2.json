@@ -1,0 +1,680 @@
+{
+    "HeroQuiz": [
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "25"
+                    },
+                    "Question": {
+                        "S": "Ghost Rider is known as?"
+                    },
+                    "option1": {
+                        "S": "Hot Head"
+                    },
+                    "option2": {
+                        "S": "The Spirit of Hate"
+                    },
+                    "option3": {
+                        "S": "The Guardian Devil"
+                    },
+                    "option4": {
+                        "S": "The Spirit of vengeance"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "26"
+                    },
+                    "Question": {
+                        "S": "Storm made her debut in which issue?"
+                    },
+                    "option1": {
+                        "S": "Giant Sized X-men number 1"
+                    },
+                    "option2": {
+                        "S": "The Uncanncy X-men number 233"
+                    },
+                    "option3": {
+                        "S": "X-men number 12"
+                    },
+                    "option4": {
+                        "S": "X-men number 1"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "27"
+                    },
+                    "Question": {
+                        "S": "Where have the Fantastic Four set up headquarters?"
+                    },
+                    "option1": {
+                        "S": "Doomstadt"
+                    },
+                    "option2": {
+                        "S": "Avengers Mansion"
+                    },
+                    "option3": {
+                        "S": "The Baxtor Building"
+                    },
+                    "option4": {
+                        "S": "Stark Tower"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "28"
+                    },
+                    "Question": {
+                        "S": "Kitty Pryde has the ability to do what?"
+                    },
+                    "option1": {
+                        "S": "Walk through walls"
+                    },
+                    "option2": {
+                        "S": "Scream loudly"
+                    },
+                    "option3": {
+                        "S": "Turn invisible"
+                    },
+                    "option4": {
+                        "S": "Transform into a panther"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "29"
+                    },
+                    "Question": {
+                        "S": "Squirrel girl first appeared in what issue?"
+                    },
+                    "option1": {
+                        "S": "Squirrel Girl number one"
+                    },
+                    "option2": {
+                        "S": "Tales to astonish number 16"
+                    },
+                    "option3": {
+                        "S": "Avengers number 239"
+                    },
+                    "option4": {
+                        "S": "Marvel Superheroes number 8"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "30"
+                    },
+                    "Question": {
+                        "S": "Which of the following is not a power Squirrel Girl has?"
+                    },
+                    "option1": {
+                        "S": "Enhanced strength and speed"
+                    },
+                    "option2": {
+                        "S": "Transforming into a squirrel"
+                    },
+                    "option3": {
+                        "S": "Small claws and enlarged incisors"
+                    },
+                    "option4": {
+                        "S": "Retractable knuckle spike"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "31"
+                    },
+                    "Question": {
+                        "S": "In 1986, Psylocke was rendered blind by Slaymaster.  How did she react to her new disability?"
+                    },
+                    "option1": {
+                        "S": "She became depressed and isolated in her home"
+                    },
+                    "option2": {
+                        "S": "She had surgery to restore her eyesight"
+                    },
+                    "option3": {
+                        "S": "She adopted grover, a telepathic seeing eye dog."
+                    },
+                    "option4": {
+                        "S": "She telepathically saw through the eyes of those around her"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "32"
+                    },
+                    "Question": {
+                        "S": "What is the name of the Wonder Twins space monkey?"
+                    },
+                    "option1": {
+                        "S": "Bilbo"
+                    },
+                    "option2": {
+                        "S": "Gleek"
+                    },
+                    "option3": {
+                        "S": "Bobo"
+                    },
+                    "option4": {
+                        "S": "Glow"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "33"
+                    },
+                    "Question": {
+                        "S": "What is the source of Supermans powers here on earth?"
+                    },
+                    "option1": {
+                        "S": "the yellow sun"
+                    },
+                    "option2": {
+                        "S": "sheer willpower"
+                    },
+                    "option3": {
+                        "S": "alien d n a"
+                    },
+                    "option4": {
+                        "S": "Spinach"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "34"
+                    },
+                    "Question": {
+                        "S": "Which X-man is a devout catholic?"
+                    },
+                    "option1": {
+                        "S": "Colossus"
+                    },
+                    "option2": {
+                        "S": "Storm"
+                    },
+                    "option3": {
+                        "S": "Nightcrawler"
+                    },
+                    "option4": {
+                        "S": "Rogue"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "35"
+                    },
+                    "Question": {
+                        "S": "What issue this the X-babies make their first appearance?"
+                    },
+                    "option1": {
+                        "S": "There have never been x-babies."
+                    },
+                    "option2": {
+                        "S": "uncanny x-men number 238"
+                    },
+                    "option3": {
+                        "S": "Giant Sized X-men number one"
+                    },
+                    "option4": {
+                        "S": "Uncanny X-men annual number 10"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "36"
+                    },
+                    "Question": {
+                        "S": "What issue did Dazzler make her first appearance?"
+                    },
+                    "option1": {
+                        "S": "x-men number 130"
+                    },
+                    "option2": {
+                        "S": "x-men number 138"
+                    },
+                    "option3": {
+                        "S": "x-men number 150"
+                    },
+                    "option4": {
+                        "S": "x-men number 222"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "37"
+                    },
+                    "Question": {
+                        "S": "What transformed Bruce Banner into the Hulk?"
+                    },
+                    "option1": {
+                        "S": "hyponotherapy"
+                    },
+                    "option2": {
+                        "S": "Chemical spill"
+                    },
+                    "option3": {
+                        "S": "Gamma Rays"
+                    },
+                    "option4": {
+                        "S": "Solar explosion"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "38"
+                    },
+                    "Question": {
+                        "S": "What metal laces Wolverines bones?"
+                    },
+                    "option1": {
+                        "S": "adamantium"
+                    },
+                    "option2": {
+                        "S": "vibranium"
+                    },
+                    "option3": {
+                        "S": "steel"
+                    },
+                    "option4": {
+                        "S": "tungsten carbide"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "39"
+                    },
+                    "Question": {
+                        "S": "Who was not an original member of the x-men?"
+                    },
+                    "option1": {
+                        "S": "Beast"
+                    },
+                    "option2": {
+                        "S": "Storm"
+                    },
+                    "option3": {
+                        "S": "Cyclops"
+                    },
+                    "option4": {
+                        "S": "Angel"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "40"
+                    },
+                    "Question": {
+                        "S": "Which of the following is not a power of spider man?"
+                    },
+                    "option1": {
+                        "S": "wall crawling"
+                    },
+                    "option2": {
+                        "S": "super strength"
+                    },
+                    "option3": {
+                        "S": "communicate with spiders"
+                    },
+                    "option4": {
+                        "S": "spider sense"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "41"
+                    },
+                    "Question": {
+                        "S": "What planet is Peter Quill from?"
+                    },
+                    "option1": {
+                        "S": "Rigel 3"
+                    },
+                    "option2": {
+                        "S": "Zenn La"
+                    },
+                    "option3": {
+                        "S": "Zendarr"
+                    },
+                    "option4": {
+                        "S": "Earth"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "42"
+                    },
+                    "Question": {
+                        "S": "Who has not played Batman in a live action movie?"
+                    },
+                    "option1": {
+                        "S": "Ben Affleck"
+                    },
+                    "option2": {
+                        "S": "Matt Damon"
+                    },
+                    "option3": {
+                        "S": "Adam West"
+                    },
+                    "option4": {
+                        "S": "Val Kilmer"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "43"
+                    },
+                    "Question": {
+                        "S": "Who has never played Wonder Woman in a live action movie or TV show?"
+                    },
+                    "option1": {
+                        "S": "Lynda Carter"
+                    },
+                    "option2": {
+                        "S": "Adrienne Palicki"
+                    },
+                    "option3": {
+                        "S": "Sandra Bullock"
+                    },
+                    "option4": {
+                        "S": "Gal Gadot"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "44"
+                    },
+                    "Question": {
+                        "S": "In the Marvel Cinematic Universe, which infinity stone was the tesseract?"
+                    },
+                    "option1": {
+                        "S": "Power stone"
+                    },
+                    "option2": {
+                        "S": "mind stone"
+                    },
+                    "option3": {
+                        "S": "space stone"
+                    },
+                    "option4": {
+                        "S": "time stone"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "45"
+                    },
+                    "Question": {
+                        "S": "Who plays Nick Fury in the Marvel Cinematic Universe?"
+                    },
+                    "option1": {
+                        "S": "Chris Evans"
+                    },
+                    "option2": {
+                        "S": "Will Smith"
+                    },
+                    "option3": {
+                        "S": "Lawrence Fishburn"
+                    },
+                    "option4": {
+                        "S": "Samuel L Jackson"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "46"
+                    },
+                    "Question": {
+                        "S": "What military group did Captain America lead?"
+                    },
+                    "option1": {
+                        "S": "Howling Commandos"
+                    },
+                    "option2": {
+                        "S": "The Expendables"
+                    },
+                    "option3": {
+                        "S": "104th batallion"
+                    },
+                    "option4": {
+                        "S": "Rocket Rangers"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "47"
+                    },
+                    "Question": {
+                        "S": "Which brave and headstrong lady founded shield?"
+                    },
+                    "option1": {
+                        "S": "Jessica Drake"
+                    },
+                    "option2": {
+                        "S": "Janet Van Dyne"
+                    },
+                    "option3": {
+                        "S": "Peggy Carter"
+                    },
+                    "option4": {
+                        "S": "Natalia Romanoff"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "48"
+                    },
+                    "Question": {
+                        "S": "What is the secret identity of Captain Americas ally, The Falcon?"
+                    },
+                    "option1": {
+                        "S": "Wilson Fisk"
+                    },
+                    "option2": {
+                        "S": "Sam Wilson"
+                    },
+                    "option3": {
+                        "S": "Steve Rogers"
+                    },
+                    "option4": {
+                        "S": "Scott Lang"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "49"
+                    },
+                    "Question": {
+                        "S": "What issue saw the debut of the Punisher?"
+                    },
+                    "option1": {
+                        "S": "Amazing spider man number 129"
+                    },
+                    "option2": {
+                        "S": "Amazing spider man number 200"
+                    },
+                    "option3": {
+                        "S": "Amazing spider man annual number 10"
+                    },
+                    "option4": {
+                        "S": "Punisher war journal number one"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+
+        }
+    ]
+}
