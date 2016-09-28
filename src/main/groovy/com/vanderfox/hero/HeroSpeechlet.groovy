@@ -84,7 +84,10 @@ public class HeroSpeechlet implements Speechlet {
                 askForPlayerNameAgain(intent.getSlot("PLAYER_NAME"), session)
                 break
             case "AMAZON.StartOverIntent":
-                askQuestion(intent.getSlot("PLAYER_NAME"), session)
+                getNumberOfQuestions(session)
+                break
+            case "NumberQuestionsIntent":
+                setNumberOfQuestions(intent.getSlot("NUMBER_QUESTIONS"), session)
                 break
             case "AMAZON.HelpIntent":
                 getHelpResponse(session)
@@ -250,6 +253,34 @@ public class HeroSpeechlet implements Speechlet {
         askResponse(speechText, speechText)
     }
 
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse getNumberOfQuestions(final Session session) {
+        def speechText = ""
+        speechText = "How many questions should I ask each player?"
+        askResponse(speechText, speechText)
+    }
+
+    /**
+     * Creates a {@code SpeechletResponse} for the hello intent.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse setNumberOfQuestions(Slot query, final Session session) {
+        def speechText = ""
+        int numQuestions = Integer.parseInt(query.getValue())
+        speechText = "OK.  I will ask each player ${numQuestions} questions."
+        session.setAttribute("questionCounter", numQuestions)
+        speechText = getQuestion(session, speechText);
+        session.setAttribute("state", "askQuestion")
+        log.info("Finished grabbing question and about to reply")
+        log.info("Responding with:  " + speechText)
+        askResponse(speechText, speechText)
+    }
+
     private SpeechletResponse askResponse(String cardText, String speechText) {
         // Create the Simple card content.
         SimpleCard card = new SimpleCard();
@@ -335,24 +366,6 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse askQuestion(Slot query, final Session session) {
-        String playerName = (String) session.getAttribute("playerName")
-        String speechText = ""
-
-        int questionCount = Integer.parseInt((String) session.getAttribute("questionCounter"))
-        speechText = "OK, I'll now ask each player ${questionCount} questions.\n"
-        speechText = getQuestion(session, speechText);
-        session.setAttribute("state", "askQuestion")
-        log.info("Finished grabbing question and about to reply")
-        log.info("Responding with:  " + speechText)
-        askResponse(speechText, speechText)
-
-    }
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
     private SpeechletResponse getAnswer(Slot query, final Session session) {
 
         def speechText
@@ -382,7 +395,6 @@ public class HeroSpeechlet implements Speechlet {
         }
 
         playerIndex = nextPlayer(session, playerIndex)
-
         log.info("questionCounter:  " + questionCounter)
         log.info("playerIndex:  " + playerIndex)
         log.info("playerCount:  " + playerCount)
