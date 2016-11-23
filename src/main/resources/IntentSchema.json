@@ -1,52 +1,22 @@
 {
   "intents": [
     {
-      "intent": "AnswerIntent",
+      "intent": "countRunningInstances"
+    },
+    {
+      "intent": "cloudwatchAlarms"
+    },
+    {
+      "intent": "countInstances",
       "slots": [
         {
-          "name": "Answer",
-          "type": "LIST_OF_ANSWERS"
+          "name": "instanceState",
+          "type": "INSTANCE_STATES"
         }
       ]
-    },
-
-    {
-      "intent": "AnswerOnlyIntent",
-      "slots": [
-        {
-          "name": "Answer",
-          "type": "LIST_OF_ANSWERS"
-        }
-      ]
-    },
-
-    {
-      "intent": "PlayerNameIntent",
-      "slots": [
-        {
-          "name": "PLAYER_NAME",
-          "type": "AMAZON.LITERAL"
-        }
-      ]
-    },
-
-    {
-      "intent": "DontKnowIntent"
-    },
-    {
-      "intent": "AMAZON.StartOverIntent"
-    },
-    {
-      "intent": "AMAZON.RepeatIntent"
     },
     {
       "intent": "AMAZON.HelpIntent"
-    },
-    {
-      "intent": "AMAZON.YesIntent"
-    },
-    {
-      "intent": "AMAZON.NoIntent"
     },
     {
       "intent": "AMAZON.StopIntent"
