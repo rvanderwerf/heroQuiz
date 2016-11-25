@@ -46,6 +46,7 @@ dependencies {
     compile group: 'com.amazonaws', name: 'aws-java-sdk-ec2', version: '1.11.56'
     compile group: 'com.amazonaws', name: 'aws-java-sdk-sns', version: '1.11.56'
     compile group: 'com.amazonaws', name: 'aws-java-sdk-codedeploy', version: '1.11.56'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk-cloudformation', version: '1.11.56'
     compile group: 'com.amazonaws', name: 'aws-java-sdk-cloudwatchmetrics', version: '1.11.56'
     compile 'org.grails:grails-validation:3.0.4'
 }
