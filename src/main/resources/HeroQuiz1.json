@@ -1,0 +1,680 @@
+{
+    "HeroQuiz": [
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "0"
+                    },
+                    "Question": {
+                        "S": "What is batmans real name?"
+                    },
+                    "option1": {
+                        "S": "Bruce Wayne"
+                    },
+                    "option2": {
+                        "S": "Clark Kent"
+                    },
+                    "option3": {
+                        "S": "Peter Parker"
+                    },
+                    "option4": {
+                        "S": "Wally West"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "1"
+                    },
+                    "Question": {
+                        "S": "What is spidermans real name?"
+                    },
+                    "option1": {
+                        "S": "Peter Parker"
+                    },
+                    "option2": {
+                        "S": "Steve Rogers"
+                    },
+                    "option3": {
+                        "S": "Victor Von Doom"
+                    },
+                    "option4": {
+                        "S": "Ben Grimm"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "2"
+                    },
+                    "Question": {
+                        "S": "What steel man made a first appearance in Giant Sized X-men number 1?"
+                    },
+                    "option1": {
+                        "S": "Iron Man"
+                    },
+                    "option2": {
+                        "S": "Colossus"
+                    },
+                    "option3": {
+                        "S": "Strong Guy"
+                    },
+                    "option4": {
+                        "S": "Magneto"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "3"
+                    },
+                    "Question": {
+                        "S": "Who is Tandy Bowen better known as?"
+                    },
+                    "option1": {
+                        "S": "Dazzler"
+                    },
+                    "option2": {
+                        "S": "Cloak"
+                    },
+                    "option3": {
+                        "S": "Mist Master"
+                    },
+                    "option4": {
+                        "S": "Dagger"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "4"
+                    },
+                    "Question": {
+                        "S": "Dazzlers power is to absorb light and convert it to what?"
+                    },
+                    "option1": {
+                        "S": "explosive energy"
+                    },
+                    "option2": {
+                        "S": "light"
+                    },
+                    "option3": {
+                        "S": "louder sound"
+                    },
+                    "option4": {
+                        "S": "silence"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "5"
+                    },
+                    "Question": {
+                        "S": "Who married the Black Panther?"
+                    },
+                    "option1": {
+                        "S": "Psylocke"
+                    },
+                    "option2": {
+                        "S": "Kitty Pryde"
+                    },
+                    "option3": {
+                        "S": "Rogue"
+                    },
+                    "option4": {
+                        "S": "Storm"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "6"
+                    },
+                    "Question": {
+                        "S": "Which of the following has never been a Green Lantern?"
+                    },
+                    "option1": {
+                        "S": "Wally West"
+                    },
+                    "option2": {
+                        "S": "Hal Jordan"
+                    },
+                    "option3": {
+                        "S": "Kyle Raynor"
+                    },
+                    "option4": {
+                        "S": "John Stewart"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "7"
+                    },
+                    "Question": {
+                        "S": "In the Marvel Cinematic Universe, which actor plays Hawkeye?"
+                    },
+                    "option1": {
+                        "S": "Jeremy Rennor"
+                    },
+                    "option2": {
+                        "S": "Chris Evans"
+                    },
+                    "option3": {
+                        "S": "Ben Affleck"
+                    },
+                    "option4": {
+                        "S": "Matt Damon"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "8"
+                    },
+                    "Question": {
+                        "S": "Who did Peter Parker marry?"
+                    },
+                    "option1": {
+                        "S": "May Parker"
+                    },
+                    "option2": {
+                        "S": "Mary Jane Watson"
+                    },
+                    "option3": {
+                        "S": "Felicia Hardy"
+                    },
+                    "option4": {
+                        "S": "Gwen Stacy"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "9"
+                    },
+                    "Question": {
+                        "S": "Which Hero is motivated by the adage With Great Power comes great responsibility?"
+                    },
+                    "option1": {
+                        "S": "Spider-Man"
+                    },
+                    "option2": {
+                        "S": "Bat Man"
+                    },
+                    "option3": {
+                        "S": "The Flash"
+                    },
+                    "option4": {
+                        "S": "Captain America"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "10"
+                    },
+                    "Question": {
+                        "S": "Piotr Rasputins sister, Illyana, is also known by what name?"
+                    },
+                    "option1": {
+                        "S": "Red Queen"
+                    },
+                    "option2": {
+                        "S": "Anastasia"
+                    },
+                    "option3": {
+                        "S": "Magik"
+                    },
+                    "option4": {
+                        "S": "Mirage"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "11"
+                    },
+                    "Question": {
+                        "S": "The Green Goblin is usually seen riding a flying glider, but when the character was first introduced in Amazing Spiderman number four, what did he ride on?"
+                    },
+                    "option1": {
+                        "S": "It was still the glider"
+                    },
+                    "option2": {
+                        "S": "A fan powered flying broomstick"
+                    },
+                    "option3": {
+                        "S": "He had the power to fly by himself"
+                    },
+                    "option4": {
+                        "S": "a turbo pogo-stick"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "12"
+                    },
+                    "Question": {
+                        "S": "in What issue did the Green Goblin make his debut?"
+                    },
+                    "option1": {
+                        "S": "The Amazing Spider man number four"
+                    },
+                    "option2": {
+                        "S": "Spectacular spider man numner one"
+                    },
+                    "option3": {
+                        "S": "Tales to astonish number 12"
+                    },
+                    "option4": {
+                        "S": "Amazing Fantasy number 15"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "13"
+                    },
+                    "Question": {
+                        "S": "The Trapster, a spider man villain is easily riled when spider man calls him what name?"
+                    },
+                    "option1": {
+                        "S": "Gum shoe Gary"
+                    },
+                    "option2": {
+                        "S": "Danger dog dan"
+                    },
+                    "option3": {
+                        "S": "Trappy McTrapperface"
+                    },
+                    "option4": {
+                        "S": "Paste Pot Pete"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "14"
+                    },
+                    "Question": {
+                        "S": "What issue saw Spider mans debut?"
+                    },
+                    "option1": {
+                        "S": "Tales to astonish 13"
+                    },
+                    "option2": {
+                        "S": "Amazing Fantasy number fifteen"
+                    },
+                    "option3": {
+                        "S": "The Amazing Spider man number one"
+                    },
+                    "option4": {
+                        "S": "Strange tales number 110"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "15"
+                    },
+                    "Question": {
+                        "S": "Where does the Flash live?"
+                    },
+                    "option1": {
+                        "S": "Metropolis"
+                    },
+                    "option2": {
+                        "S": "Star City"
+                    },
+                    "option3": {
+                        "S": "Central City"
+                    },
+                    "option4": {
+                        "S": "Gotham City"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "16"
+                    },
+                    "Question": {
+                        "S": "What is Mark Spectors alter ego?"
+                    },
+                    "option1": {
+                        "S": "Ghost Rider"
+                    },
+                    "option2": {
+                        "S": "Moon Knight"
+                    },
+                    "option3": {
+                        "S": "The Phantom"
+                    },
+                    "option4": {
+                        "S": "Space Ghost"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "17"
+                    },
+                    "Question": {
+                        "S": "How did Daredevils father earn a living?"
+                    },
+                    "option1": {
+                        "S": "Boxing"
+                    },
+                    "option2": {
+                        "S": "lawyer"
+                    },
+                    "option3": {
+                        "S": "doctor"
+                    },
+                    "option4": {
+                        "S": "martial arts instructor"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "18"
+                    },
+                    "Question": {
+                        "S": "What is the punishers real name?"
+                    },
+                    "option1": {
+                        "S": "Frank Drebin"
+                    },
+                    "option2": {
+                        "S": "Frank Martin"
+                    },
+                    "option3": {
+                        "S": "Frank Picard"
+                    },
+                    "option4": {
+                        "S": "Frank Castle"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "19"
+                    },
+                    "Question": {
+                        "S": "Where have the Fantastic Four set up headquarters?"
+                    },
+                    "option1": {
+                        "S": "Doomstadt"
+                    },
+                    "option2": {
+                        "S": "Avengers Mansion"
+                    },
+                    "option3": {
+                        "S": "The Baxtor Building"
+                    },
+                    "option4": {
+                        "S": "Stark Tower"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "20"
+                    },
+                    "Question": {
+                        "S": "What is the silver surfers home planet?"
+                    },
+                    "option1": {
+                        "S": "Zenn La"
+                    },
+                    "option2": {
+                        "S": "Krypton"
+                    },
+                    "option3": {
+                        "S": "Romulus"
+                    },
+                    "option4": {
+                        "S": "Saturn"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "21"
+                    },
+                    "Question": {
+                        "S": "What is the name of Doctor Stranges home in Greenwich Village?"
+                    },
+                    "option1": {
+                        "S": "Salem Center"
+                    },
+                    "option2": {
+                        "S": "Santum Santorum"
+                    },
+                    "option3": {
+                        "S": "Darkmoor"
+                    },
+                    "option4": {
+                        "S": "The Bowery"
+                    },
+                    "answer": {
+                        "N": "2"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "22"
+                    },
+                    "Question": {
+                        "S": "Which of the following was not a founding member of the x-men?"
+                    },
+                    "option1": {
+                        "S": "Iceman"
+                    },
+                    "option2": {
+                        "S": "Beast"
+                    },
+                    "option3": {
+                        "S": "Marvel Girl"
+                    },
+                    "option4": {
+                        "S": "Storm"
+                    },
+                    "answer": {
+                        "N": "4"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "23"
+                    },
+                    "Question": {
+                        "S": "Which team is based in Canada?"
+                    },
+                    "option1": {
+                        "S": "Alpha Flight"
+                    },
+                    "option2": {
+                        "S": "New Mutants"
+                    },
+                    "option3": {
+                        "S": "Squadron Supreme"
+                    },
+                    "option4": {
+                        "S": "West Coast Avengers"
+                    },
+                    "answer": {
+                        "N": "1"
+                    }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "Id": {
+                        "N": "24"
+                    },
+                    "Question": {
+                        "S": "What are the wonder twins names?"
+                    },
+                    "option1": {
+                        "S": "Ergo and Gayle"
+                    },
+                    "option2": {
+                        "S": "Edwin and Darla"
+                    },
+                    "option3": {
+                        "S": "Zan and Jayna"
+                    },
+                    "option4": {
+                        "S": "Smith and Wendy"
+                    },
+                    "answer": {
+                        "N": "3"
+                    }
+                }
+            }
+        }
+
+    ]
+}

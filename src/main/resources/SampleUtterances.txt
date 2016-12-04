@@ -1,14 +1,31 @@
-countRunningInstances count instances
-countRunningInstances count running instances
+AnswerIntent the answer is {Answer}
+AnswerIntent my answer is {Answer}
+AnswerIntent is it {Answer}
+AnswerIntent {Answer} is my answer
 
-countInstances How many instances are {instanceState}
-countInstances How many instances are a {instanceState} state
+AMAZON.RepeatIntent repeat
+AMAZON.RepeatIntent repeat question
+AMAZON.RepeatIntent repeat the question
+AMAZON.RepeatIntent repeat the last question
 
-cloudwatchAlarms Do I have any CloudWatch Alarms
+PlayerNameIntent {test|PLAYER_NAME}
+PlayerNameIntent {test test|PLAYER_NAME}
+PlayerNameIntent My name is {test|PLAYER_NAME}
+PlayerNameIntent My name is {test test|PLAYER_NAME}
+
+AMAZON.StartOverIntent start game
+AMAZON.StartOverIntent new game
+AMAZON.StartOverIntent start
+AMAZON.StartOverIntent start new game
+
+AMAZON.StopIntent stop
+AMAZON.StopIntent stop game
+AMAZON.StopIntent end game
+
+AMAZON.CancelIntent cancel
+AMAZON.CancelIntent cancel game
 
 AMAZON.HelpIntent help
 AMAZON.HelpIntent help me
 
-AMAZON.StopIntent stop
-
-AMAZON.CancelIntent cancel
+DontKnowIntent i don't know
