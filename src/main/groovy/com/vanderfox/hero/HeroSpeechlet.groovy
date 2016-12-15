@@ -15,7 +15,6 @@ import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
 import com.vanderfox.hero.question.Question
-import com.vanderfox.hero.user.User
 import groovy.transform.CompileStatic
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory
