@@ -39,15 +39,11 @@ public class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
-        session.setAttribute("playerList", new ArrayList<User>())
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
         session.setAttribute("askedQuestions", askedQuestions)
-        session.setAttribute("questionCounter", getNumberOfQuestions())
+        session.setAttribute("questionCounter", 10)
         session.setAttribute("score", 0)
-        session.setAttribute("playerIndex", 0)
-        session.setAttribute("playerCount", 0)
         session.setAttribute("state", "start")
-        initializeComponents(session)
 
         // any initialization logic goes here
     }
@@ -57,7 +53,6 @@ public class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
-
         getWelcomeResponse();
     }
 
@@ -71,23 +66,8 @@ public class HeroSpeechlet implements Speechlet {
         String intentName = (intent != null) ? intent.getName() : null;
         log.debug("Intent = " + intentName)
         switch (intentName) {
-            case "PlayerNameIntent":
-                verifyPlayerName(intent.getSlot("PLAYER_NAME"), session)
-                break
             case "AnswerIntent":
                 getAnswer(intent.getSlot("Answer"), session)
-                break
-            case "AMAZON.YesIntent":
-                setPlayerName(intent.getSlot("PLAYER_NAME"), session)
-                break
-            case "AMAZON.NoIntent":
-                askForPlayerNameAgain(intent.getSlot("PLAYER_NAME"), session)
-                break
-            case "AMAZON.StartOverIntent":
-                getNumberOfQuestions(session)
-                break
-            case "NumberQuestionsIntent":
-                setNumberOfQuestions(intent.getSlot("NUMBER_QUESTIONS"), session)
                 break
             case "AMAZON.HelpIntent":
                 getHelpResponse(session)
@@ -131,8 +111,8 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getWelcomeResponse() {
-        String speechText = "Welcome to Hero Quiz.  Please say the first players name.";
-        askResponseFancy(speechText, speechText, "https://s3.amazonaws.com/vanderfox-sounds/test.mp3")
+        String speechText = "Welcome to Hero Quiz.";
+        askResponse(speechText, speechText)
 
     }
 
@@ -144,12 +124,6 @@ public class HeroSpeechlet implements Speechlet {
     private String getQuestion(final Session session, String speechText) {
         Question question = getRandomUnaskedQuestion(session)
         session.setAttribute("lastQuestionAsked", question)
-
-        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
-        int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
-        User player = playerList.get(playerIndex)
-        speechText += "\n"
-        speechText += player.getName() + ", "
 
         speechText += "\n"
         speechText += question.getQuestion() + "\n"
@@ -201,84 +175,6 @@ public class HeroSpeechlet implements Speechlet {
         log.info("question retrieved:  " + question.getAnswer())
         log.info("question retrieved:  " + question.getOptions().length)
         question
-    }
-
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private SpeechletResponse verifyPlayerName(Slot query, final Session session) {
-        String playerName = query.getValue()
-
-        String speechText = ""
-
-        speechText = "I heard ${playerName}.  Is that correct?."
-        session.setAttribute("playerName", playerName)
-        session.setAttribute("state", "setPlayerName")
-
-        askResponse(speechText, speechText)
-
-    }
-
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private SpeechletResponse setPlayerName(Slot query, final Session session) {
-        def speechText = ""
-
-        User user = new User()
-        user.setName((String) session.getAttribute("playerName"))
-        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
-        playerList.add(user)
-        session.setAttribute("playerList", playerList)
-        int playerCount = Integer.parseInt((String) session.getAttribute("playerCount"))
-        session.setAttribute("playerCount", playerCount++)
-        log.info("playerCount = " + playerCount)
-        speechText = "OK.  Tell me the next player’s name or say start game to move on."
-        session.setAttribute("state", "verifyPlayerName")
-        askResponse(speechText, speechText)
-    }
-
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private SpeechletResponse askForPlayerNameAgain(Slot query, final Session session) {
-        def speechText = ""
-        speechText = "Sorry about that.  Please tell me the next players name again."
-        askResponse(speechText, speechText)
-    }
-
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private SpeechletResponse getNumberOfQuestions(final Session session) {
-        def speechText = ""
-        speechText = "How many questions should I ask each player?"
-        askResponse(speechText, speechText)
-    }
-
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private SpeechletResponse setNumberOfQuestions(Slot query, final Session session) {
-        def speechText = ""
-        int numQuestions = Integer.parseInt(query.getValue())
-        speechText = "OK.  I will ask each player ${numQuestions} questions."
-        session.setAttribute("questionCounter", numQuestions)
-        speechText = getQuestion(session, speechText);
-        session.setAttribute("state", "askQuestion")
-        log.info("Finished grabbing question and about to reply")
-        log.info("Responding with:  " + speechText)
-        askResponse(speechText, speechText)
     }
 
     private SpeechletResponse askResponse(String cardText, String speechText) {
@@ -341,14 +237,8 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse repeatQuestion(final Session session) {
-        String playerName = (String) session.getAttribute("playerName")
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         String speechText = ""
-        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
-        int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
-        User player = playerList.get(playerIndex)
-        speechText += "\n"
-        speechText += player.getName() + ", "
 
         speechText += "\n"
         speechText += question.getQuestion() + "\n"
@@ -369,11 +259,6 @@ public class HeroSpeechlet implements Speechlet {
     private SpeechletResponse getAnswer(Slot query, final Session session) {
 
         def speechText
-        int playerIndex = Integer.parseInt((String) session.getAttribute("playerIndex"))
-        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
-        int playerCount = playerList.size()
-        log.info("playerIndex:  " + playerIndex)
-        log.info("playerCount:  " + playerCount)
 
         int guessedAnswer = Integer.parseInt(query.getValue()) - 1
         log.info("Guessed answer is:  " + query.getValue())
@@ -383,77 +268,31 @@ public class HeroSpeechlet implements Speechlet {
         log.info("correct answer is:  " + answer)
         int questionCounter = Integer.parseInt((String) session.getAttribute("questionCounter"))
 
-        if(playerIndex + 1 == playerCount) {
-            questionCounter = decrementQuestionCounter(session)
-        }
+        questionCounter = decrementQuestionCounter(session)
 
         if(guessedAnswer == answer) {
             speechText = "You got it right."
-            incrementPlayerScore(session, playerIndex)
         } else {
             speechText = "You got it wrong."
         }
 
-        playerIndex = nextPlayer(session, playerIndex)
         log.info("questionCounter:  " + questionCounter)
-        log.info("playerIndex:  " + playerIndex)
-        log.info("playerCount:  " + playerCount)
 
         if(questionCounter > 0) {
             session.setAttribute("state", "askQuestion")
             speechText = getQuestion(session, speechText);
             return askResponse(speechText, speechText)
         } else {
-            if(playerIndex == 0) {
-                String score = scoreGame(session)
-                speechText += score
-                return tellResponse(speechText, speechText)
-            }
+            String score = scoreGame(session)
+            return tellResponse(speechText, speechText)
         }
     }
 
     private String scoreGame(Session session) {
-        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
         int highScore = 0
-        boolean tiedGame = false
-        User highScorer = null
         String response = "\n\n"
-        for(User currentPlayer: playerList) {
-            if(currentPlayer.score > highScore) {
-                highScore = currentPlayer.score
-                highScorer = currentPlayer
-                tiedGame = false
-            } else {
-                if(currentPlayer.score == highScore) {
-                    tiedGame = true
-                }
-            }
-            response += "${currentPlayer.name} answered ${currentPlayer.score} correctly.\n"
-        }
-        if(tiedGame) {
-            response += "It was a tied game."
-        } else {
-            response += "${highScorer.name} is the winner."
-        }
+        response += "You answered XXX questions correctly.\n"
         response
-    }
-
-    private int nextPlayer(Session session, int playerIndex) {
-        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
-        playerIndex++
-        if (playerIndex == playerList.size()) {
-            playerIndex = 0
-        }
-        session.setAttribute("playerIndex", playerIndex)
-        playerIndex
-    }
-
-    private void incrementPlayerScore(Session session, int playerIndex) {
-        ArrayList<User> playerList = (ArrayList) session.getAttribute("playerList")
-        User player = playerList.get(playerIndex)
-        player.score += 1
-        playerList.set(playerIndex, player)
-        session.setAttribute("playerList", playerList)
     }
 
     /**
