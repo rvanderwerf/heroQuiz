@@ -78,7 +78,7 @@ public class HeroSpeechlet implements Speechlet {
                 getAnswer(intent.getSlot("Answer"), session)
                 break
             case "DontKnowIntent":
-                getAnswer(intent.getSlot("Answer"), session)
+                processAnswer(session, 5)
                 break
             case "AMAZON.HelpIntent":
                 getHelpResponse(session)
@@ -263,6 +263,11 @@ public class HeroSpeechlet implements Speechlet {
         int guessedAnswer = Integer.parseInt(query.getValue()) - 1
         log.info("Guessed answer is:  " + query.getValue())
 
+        return processAnswer(session, guessedAnswer)
+    }
+
+    private SpeechletResponse processAnswer(Session session, int guessedAnswer) {
+        def speechText
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         def answer = question.getAnswer()
         log.info("correct answer is:  " + answer)
@@ -270,7 +275,7 @@ public class HeroSpeechlet implements Speechlet {
 
         questionCounter = decrementQuestionCounter(session)
 
-        if(guessedAnswer == answer) {
+        if (guessedAnswer == answer) {
             speechText = "You got it right."
             int score = (Integer) session.getAttribute("score")
             score++
@@ -283,7 +288,7 @@ public class HeroSpeechlet implements Speechlet {
 
         log.info("questionCounter:  " + questionCounter)
 
-        if(questionCounter > 0) {
+        if (questionCounter > 0) {
             session.setAttribute("state", "askQuestion")
             speechText = getQuestion(session, speechText);
             return askResponse(speechText, speechText)
@@ -350,7 +355,7 @@ public class HeroSpeechlet implements Speechlet {
      */
     private SpeechletResponse getHelpResponse(Session session) {
         String speechText = ""
-        speechText = "You can say stop or cancel to end the game at any time.  I will guide you through the game.  If you need a question repeated, say repeat question.";
+        speechText = "You can say stop or cancel to end the game at any time.  If you need a question repeated, say repeat question.";
         askResponse(speechText, speechText)
     }
 
@@ -359,39 +364,12 @@ public class HeroSpeechlet implements Speechlet {
         askResponse(speechText, speechText)
     }
 
-    private void incrementScore(Session session) {
-        int score = (int) session.getAttribute("score")
-        score++
-        session.setAttribute("score", score)
-    }
-
-    private int getScore(Session session) {
-        (int) session.getAttribute("score")
-    }
-
     private int decrementQuestionCounter(Session session) {
         int questionCounter = (int) session.getAttribute("questionCounter")
         questionCounter--
         session.setAttribute("questionCounter", questionCounter)
         questionCounter
 
-    }
-
-    private int getQuestionCounter(Session session) {
-        (int) session.getAttribute("questionCounter")
-    }
-
-    private int getNumberOfQuestions() {
-        InputStream stream = com.vanderfox.hero.HeroSpeechlet.class.getClassLoader()getResourceAsStream("springSocial.properties")
-        final Properties properties = new Properties();
-        properties.load(stream);
-
-        def property = properties.getProperty("numberOfQuestions")
-        if (!property) {
-            return 2
-        }
-        log.info("setting number of questions from config: ${property}")
-        property.toInteger()
     }
 
     /**
