@@ -272,8 +272,10 @@ public class HeroSpeechlet implements Speechlet {
 
         if(guessedAnswer == answer) {
             speechText = "You got it right."
+            questionMetricsCorrect(question.getIndex())
         } else {
             speechText = "You got it wrong."
+            questionMetricsWrong(question.getIndex())
         }
 
         log.info("questionCounter:  " + questionCounter)
@@ -287,6 +289,36 @@ public class HeroSpeechlet implements Speechlet {
             return tellResponse(speechText, speechText)
         }
     }
+
+    private int questionMetricsCorrect(int questionIndex) {
+        questionMetrics(questionIndex, true)
+    }
+
+    private int questionMetricsWrong(int questionIndex) {
+        questionMetrics(questionIndex, false)
+    }
+
+    private void questionMetrics(int questionIndex, boolean correct) {
+        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
+        Table table = dynamoDB.getTable("HeroQuizMetrics");
+        Item item = table.getItem("id", questionIndex);
+        int askedCount = 0;
+        int correctCount = 0;
+        if(item != null) {
+            askedCount = item.getInt("asked")
+            correctCount = item.getInt("correct")
+        }
+        askedCount++
+        if(correct) {
+            correctCount++
+        }
+        Item newItem = new Item()
+        newItem.withInt("id", questionIndex)
+        newItem.withInt("asked", askedCount)
+        newItem.withInt("correct", correctCount)
+        table.putItem(newItem)
+    }
+
 
     private String scoreGame(Session session) {
         int highScore = 0
