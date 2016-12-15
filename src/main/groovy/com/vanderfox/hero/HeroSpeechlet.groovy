@@ -42,9 +42,7 @@ public class HeroSpeechlet implements Speechlet {
         session.setAttribute("askedQuestions", askedQuestions)
         session.setAttribute("questionCounter", 10)
         session.setAttribute("score", 0)
-        session.setAttribute("state", "start")
-
-        // any initialization logic goes here
+        initializeComponents(session)
     }
 
     @Override
@@ -52,7 +50,18 @@ public class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
-        getWelcomeResponse();
+        getWelcomeResponse(session);
+    }
+
+    /**
+     * Creates and returns a {@code SpeechletResponse} with a welcome message.
+     *
+     * @return SpeechletResponse spoken and visual response for the given intent
+     */
+    private SpeechletResponse getWelcomeResponse(Session session) {
+        String speechText = "Welcome to Hero Quiz.  I'm going to ask you 10 questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  Let's get started";
+        speechText = getQuestion(session, speechText)
+        askResponse(speechText, speechText)
     }
 
     @Override
@@ -61,11 +70,14 @@ public class HeroSpeechlet implements Speechlet {
         log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
 
-        Intent intent = request.getIntent();
+        Intent intent = request.getIntent()
         String intentName = (intent != null) ? intent.getName() : null;
         log.debug("Intent = " + intentName)
         switch (intentName) {
             case "AnswerIntent":
+                getAnswer(intent.getSlot("Answer"), session)
+                break
+            case "DontKnowIntent":
                 getAnswer(intent.getSlot("Answer"), session)
                 break
             case "AMAZON.HelpIntent":
@@ -102,17 +114,6 @@ public class HeroSpeechlet implements Speechlet {
     private SpeechletResponse sayGoodbye() {
         String speechText = "OK.  I'm going to stop the game now.";
         tellResponse(speechText, speechText)
-    }
-
-    /**
-     * Creates and returns a {@code SpeechletResponse} with a welcome message.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private SpeechletResponse getWelcomeResponse() {
-        String speechText = "Welcome to Hero Quiz.";
-        askResponse(speechText, speechText)
-
     }
 
     /**
@@ -271,6 +272,9 @@ public class HeroSpeechlet implements Speechlet {
 
         if(guessedAnswer == answer) {
             speechText = "You got it right."
+            int score = (Integer) session.getAttribute("score")
+            score++
+            session.setAttribute("score", score)
             questionMetricsCorrect(question.getIndex())
         } else {
             speechText = "You got it wrong."
@@ -284,16 +288,18 @@ public class HeroSpeechlet implements Speechlet {
             speechText = getQuestion(session, speechText);
             return askResponse(speechText, speechText)
         } else {
-            String score = scoreGame(session)
+            int score = (Integer) session.getAttribute("score")
+            speechText += "\n\nYou answered ${score} questions correctly."
+            userMetrics(session.getUser().userId, score)
             return tellResponse(speechText, speechText)
         }
     }
 
-    private int questionMetricsCorrect(int questionIndex) {
+    private void questionMetricsCorrect(int questionIndex) {
         questionMetrics(questionIndex, true)
     }
 
-    private int questionMetricsWrong(int questionIndex) {
+    private void questionMetricsWrong(int questionIndex) {
         questionMetrics(questionIndex, false)
     }
 
@@ -303,12 +309,12 @@ public class HeroSpeechlet implements Speechlet {
         Item item = table.getItem("id", questionIndex);
         int askedCount = 0;
         int correctCount = 0;
-        if(item != null) {
+        if (item != null) {
             askedCount = item.getInt("asked")
             correctCount = item.getInt("correct")
         }
         askedCount++
-        if(correct) {
+        if (correct) {
             correctCount++
         }
         Item newItem = new Item()
@@ -318,12 +324,23 @@ public class HeroSpeechlet implements Speechlet {
         table.putItem(newItem)
     }
 
-
-    private String scoreGame(Session session) {
-        int highScore = 0
-        String response = "\n\n"
-        response += "You answered XXX questions correctly.\n"
-        response
+    private void userMetrics(String userId, int score) {
+        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
+        Table table = dynamoDB.getTable("HeroQuizUserMetrics");
+        Item item = table.getItem("id", userId);
+        int timesPlayed = 0;
+        int correctCount = 0;
+        if (item != null) {
+            timesPlayed = item.getInt("timesPlayed")
+            correctCount = item.getInt("lifeTimeCorrect")
+        }
+        timesPlayed++
+        correctCount += score
+        Item newItem = new Item()
+        newItem.withString("id", userId)
+        newItem.withInt("timesPlayed", timesPlayed)
+        newItem.withInt("lifeTimeCorrect", correctCount)
+        table.putItem(newItem)
     }
 
     /**
