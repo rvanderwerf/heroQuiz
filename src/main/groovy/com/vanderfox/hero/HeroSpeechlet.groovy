@@ -59,7 +59,7 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getWelcomeResponse(Session session) {
-        String speechText = "Welcome to Hero Quiz.  I'm going to ask you 10 questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  Let's get started";
+        String speechText = "Welcome to Unofficial Star Wars Quiz.  I'm going to ask you 5 questions to test your Star Wars knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  Let's get started"
         speechText = getQuestion(session, speechText)
         askResponse(speechText, speechText)
     }
@@ -68,7 +68,7 @@ public class HeroSpeechlet implements Speechlet {
     public SpeechletResponse onIntent(final IntentRequest request, final Session session)
             throws SpeechletException {
         log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
-                session.getSessionId());
+                session.getSessionId())
 
         Intent intent = request.getIntent()
         String intentName = (intent != null) ? intent.getName() : null;
@@ -155,9 +155,9 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     private Question getQuestion(int questionIndex) {
-        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
-        Table table = dynamoDB.getTable("HeroQuiz");
-        Item item = table.getItem("Id", questionIndex);
+        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
+        Table table = dynamoDB.getTable("StarWarsQuiz")
+        Item item = table.getItem("Id", questionIndex)
         def questionText = item.getString("Question")
         def questionAnswer = item.getInt("answer")
         def options = new String[4]
@@ -179,56 +179,56 @@ public class HeroSpeechlet implements Speechlet {
 
     private SpeechletResponse askResponse(String cardText, String speechText) {
         // Create the Simple card content.
-        SimpleCard card = new SimpleCard();
-        card.setTitle("Hero Quiz");
-        card.setContent(cardText);
+        SimpleCard card = new SimpleCard()
+        card.setTitle("Hero Quiz")
+        card.setContent(cardText)
 
         // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
+        speech.setText(speechText)
 
         // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(speech);
+        Reprompt reprompt = new Reprompt()
+        reprompt.setOutputSpeech(speech)
 
-        SpeechletResponse.newAskResponse(speech, reprompt, card);
+        SpeechletResponse.newAskResponse(speech, reprompt, card)
     }
 
     private SpeechletResponse tellResponse(String cardText, String speechText) {
         // Create the Simple card content.
-        SimpleCard card = new SimpleCard();
-        card.setTitle("Hero Quiz");
-        card.setContent(cardText);
+        SimpleCard card = new SimpleCard()
+        card.setTitle("Unofficial Star Wars Quiz")
+        card.setContent(cardText)
 
         // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
+        speech.setText(speechText)
 
         // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(speech);
+        Reprompt reprompt = new Reprompt()
+        reprompt.setOutputSpeech(speech)
 
-        SpeechletResponse.newTellResponse(speech, card);
+        SpeechletResponse.newTellResponse(speech, card)
     }
 
     private SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
         // Create the Simple card content.
-        SimpleCard card = new SimpleCard();
-        card.setTitle("Hero Quiz");
-        card.setContent(cardText);
+        SimpleCard card = new SimpleCard()
+        card.setTitle("Hero Quiz")
+        card.setContent(cardText)
 
         // Create the plain text output.
-        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText(speechText);
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
+        speech.setText(speechText)
         log.info("making welcome audio")
         SsmlOutputSpeech fancySpeech = new SsmlOutputSpeech()
         fancySpeech.ssml = "<speak><audio src=\"${fileUrl}\"/> ${speechText}</speak>"
         log.info("finished welcome audio")
         // Create reprompt
-        Reprompt reprompt = new Reprompt();
-        reprompt.setOutputSpeech(fancySpeech);
+        Reprompt reprompt = new Reprompt()
+        reprompt.setOutputSpeech(fancySpeech)
 
-        SpeechletResponse.newAskResponse(fancySpeech, reprompt, card);
+        SpeechletResponse.newAskResponse(fancySpeech, reprompt, card)
     }
 
     /**
@@ -309,11 +309,11 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     private void questionMetrics(int questionIndex, boolean correct) {
-        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
-        Table table = dynamoDB.getTable("HeroQuizMetrics");
-        Item item = table.getItem("id", questionIndex);
-        int askedCount = 0;
-        int correctCount = 0;
+        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
+        Table table = dynamoDB.getTable("HeroQuizMetrics")
+        Item item = table.getItem("id", questionIndex)
+        int askedCount = 0
+        int correctCount = 0
         if (item != null) {
             askedCount = item.getInt("asked")
             correctCount = item.getInt("correct")
@@ -330,11 +330,11 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     private void userMetrics(String userId, int score) {
-        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
-        Table table = dynamoDB.getTable("HeroQuizUserMetrics");
-        Item item = table.getItem("id", userId);
-        int timesPlayed = 0;
-        int correctCount = 0;
+        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
+        Table table = dynamoDB.getTable("StarWarsQuizUserMetrics")
+        Item item = table.getItem("id", userId)
+        int timesPlayed = 0
+        int correctCount = 0
         if (item != null) {
             timesPlayed = item.getInt("timesPlayed")
             correctCount = item.getInt("lifeTimeCorrect")
@@ -376,10 +376,10 @@ public class HeroSpeechlet implements Speechlet {
      * Initializes the instance components if needed.
      */
     private void initializeComponents(Session session) {
-        AmazonDynamoDBClient amazonDynamoDBClient;
-        amazonDynamoDBClient = new AmazonDynamoDBClient();
-        ScanRequest req = new ScanRequest();
-        req.setTableName("HeroQuiz");
+        AmazonDynamoDBClient amazonDynamoDBClient
+        amazonDynamoDBClient = new AmazonDynamoDBClient()
+        ScanRequest req = new ScanRequest()
+        req.setTableName("StarWarsQuiz")
         ScanResult result = amazonDynamoDBClient.scan(req)
         List quizItems = result.items
         int tableRowCount = quizItems.size()
