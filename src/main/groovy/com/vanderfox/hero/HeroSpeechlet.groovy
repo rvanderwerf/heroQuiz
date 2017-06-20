@@ -40,7 +40,7 @@ public class HeroSpeechlet implements Speechlet {
                 session.getSessionId())
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
         session.setAttribute("askedQuestions", askedQuestions)
-        session.setAttribute("questionCounter", 10)
+        session.setAttribute("questionCounter", 5)
         session.setAttribute("score", 0)
         initializeComponents(session)
     }
