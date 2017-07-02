@@ -10,7 +10,7 @@ buildscript {
         maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
-        classpath "jp.classmethod.aws:gradle-aws-plugin:0.22"
+        classpath "jp.classmethod.aws:gradle-aws-plugin:0.35"
         classpath "com.github.jengelman.gradle.plugins:shadow:1.2.3"
     }
 }
@@ -36,7 +36,7 @@ dependencies {
     compile 'com.amazonaws:aws-lambda-java-events:1.1.0'
     // AWS Dynamodb AWS
     compile "com.amazonaws:aws-java-sdk-dynamodb:1.10.34"
-    compile 'com.amazon.alexa:alexa-skills-kit:1.1.2'
+    compile 'com.amazon.alexa:alexa-skills-kit:1.4.0'
     compile 'org.slf4j:slf4j-api:1.7.10'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
@@ -47,8 +47,6 @@ dependencies {
     compile 'ch.qos.logback:logback-classic:1.0.13'
     compile group: 'com.amazonaws', name: 'aws-java-sdk-dynamodb', version: '1.11.3'
     compile 'org.grails:grails-validation:3.0.4'
-    //compile 'org.grails:grails-datastore-gorm-dynamodb:4.0.0.M2'
-    //compile "org.grails.plugins:aws-sdk:1.10.44"
 
 
 
