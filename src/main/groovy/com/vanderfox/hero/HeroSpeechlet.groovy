@@ -218,7 +218,11 @@ public class HeroSpeechlet implements Speechlet {
         directives.add(renderTemplateDirective)
         response.setDirectives(directives)
 
-        response.newAskResponse(speech, reprompt)
+        response.setNullableShouldEndSession(false)
+        response.setOutputSpeech(speech)
+        response.setReprompt(reprompt)
+        response
+
     }
 
     private SpeechletResponse tellResponse(String cardText, String speechText) {
