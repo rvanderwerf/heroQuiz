@@ -10,10 +10,16 @@ import com.amazon.speech.speechlet.SessionStartedRequest
 import com.amazon.speech.speechlet.Speechlet
 import com.amazon.speech.speechlet.SpeechletException
 import com.amazon.speech.speechlet.SpeechletResponse
+import com.amazon.speech.speechlet.interfaces.display.directive.RenderTemplateDirective
+import com.amazon.speech.speechlet.interfaces.display.element.ImageInstance
+import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate2
+import com.amazon.speech.ui.Card
+import com.amazon.speech.ui.Image
 import com.amazon.speech.ui.PlainTextOutputSpeech
 import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
+import com.amazon.speech.ui.StandardCard
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder
 import com.vanderfox.hero.question.Question
 import groovy.transform.CompileStatic
@@ -181,20 +187,38 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     private SpeechletResponse askResponse(String cardText, String speechText) {
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard()
+        StandardCard card = new StandardCard()
         card.setTitle("Hero Quiz")
-        card.setContent(cardText)
+        card.setText(speechText)
 
-        // Create the plain text output.
+        BodyTemplate2 template = new BodyTemplate2()
+        template.setTitle("My template")
+        com.amazon.speech.speechlet.interfaces.display.element.Image backgroundImage = new com.amazon.speech.speechlet.interfaces.display.element.Image()
+        ImageInstance imageInstance = new ImageInstance()
+        imageInstance.setUrl("https://vignette1.wikia.nocookie.net/marveldatabase/images/e/e1/The_Marvel_Universe.png/revision/latest?cb=20110513164401")
+        ArrayList<ImageInstance> imageInstances = new ArrayList()
+        imageInstances.add(imageInstance)
+        backgroundImage.setSources(imageInstances)
+        template.setBackgroundImage(backgroundImage)
+        RenderTemplateDirective renderTemplateDirective = new RenderTemplateDirective()
+        renderTemplateDirective.setTemplate(template)
+
+        Image image = new Image()
+        image.setLargeImageUrl("https://s-media-cache-ak0.pinimg.com/originals/b9/eb/6a/b9eb6a9cda9a924dcabfe93a91b7947f.jpg")
+        card.setImage(image)
+
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
         speech.setText(speechText)
 
-        // Create reprompt
         Reprompt reprompt = new Reprompt()
         reprompt.setOutputSpeech(speech)
 
-        SpeechletResponse.newAskResponse(speech, reprompt, card)
+        SpeechletResponse response = new SpeechletResponse()
+        ArrayList directives = new ArrayList()
+        directives.add(renderTemplateDirective)
+        response.setDirectives(directives)
+
+        response.newAskResponse(speech, reprompt)
     }
 
     private SpeechletResponse tellResponse(String cardText, String speechText) {
