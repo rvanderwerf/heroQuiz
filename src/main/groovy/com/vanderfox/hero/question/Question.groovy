@@ -8,13 +8,15 @@ class Question implements Serializable {
 
     String question
     String[] options
+    String speechText
+    String cardText
     int answer
     int index
     String speechTtext
     String cardText
 
     String getSpeechText() {
-        String speechText = ""
+        speechText = ""
         speechText += speechText + question + "\n\n"
         int counter = 1
         for(String option: options) {
@@ -24,7 +26,7 @@ class Question implements Serializable {
     }
 
     String getCardText() {
-        String cardText = ""
+        cardText = ""
         cardText += cardText + question + "<br/>"
         int counter = 1
         for(String option: options) {
