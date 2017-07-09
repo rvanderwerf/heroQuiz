@@ -12,8 +12,6 @@ class Question implements Serializable {
     String cardText
     int answer
     int index
-    String speechTtext
-    String cardText
 
     String getSpeechText() {
         speechText = ""
