@@ -2,6 +2,7 @@ package com.vanderfox.hero
 
 import com.amazon.speech.slu.Intent
 import com.amazon.speech.slu.Slot
+import com.amazon.speech.speechlet.Device
 import com.amazon.speech.speechlet.IntentRequest
 import com.amazon.speech.speechlet.LaunchRequest
 import com.amazon.speech.speechlet.Session
@@ -10,9 +11,15 @@ import com.amazon.speech.speechlet.SessionStartedRequest
 import com.amazon.speech.speechlet.Speechlet
 import com.amazon.speech.speechlet.SpeechletException
 import com.amazon.speech.speechlet.SpeechletResponse
+import com.amazon.speech.speechlet.SupportedInterfaces
 import com.amazon.speech.speechlet.interfaces.display.directive.RenderTemplateDirective
 import com.amazon.speech.speechlet.interfaces.display.element.ImageInstance
-import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate2
+import com.amazon.speech.speechlet.interfaces.display.element.PlainText
+import com.amazon.speech.speechlet.interfaces.display.element.RichText
+import com.amazon.speech.speechlet.interfaces.display.element.TextField
+import com.amazon.speech.speechlet.interfaces.display.element.TripleTextContent
+import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate1
+import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate3
 import com.amazon.speech.ui.Card
 import com.amazon.speech.ui.Image
 import com.amazon.speech.ui.PlainTextOutputSpeech
@@ -66,7 +73,7 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getWelcomeResponse(Session session) {
-        String speechText = "Welcome to Hero Quiz.  I'm going to ask you 10 questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  Let's get started"
+        String speechText = "Welcome to Hero Quiz.  I'm going to ask you 10 questions to test your comic book knowledge.  Say <b>repeat question</b> at any time if you need to hear a question again, or say <b>help</b> if you need some help.  Let's get started:  Oh, wait.  Before I get started, I'm going to say a bunch of stuff to see if Lee got the scrolling screen of text working.  It might have worked and it might not have.  You can be the judge.  All you have to do is just fucking look at me while I am talking and see if the screen is scrolling with the text like it does for other skills native to the Echo Show, like playing music.  <br/>"
         speechText = getQuestion(session, speechText)
         askResponse(speechText, speechText)
     }
@@ -76,6 +83,9 @@ public class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
+
+        Device device = Device.newInstance()
+        device.supportedInterfaces
 
         Intent intent = request.getIntent()
         String intentName = (intent != null) ? intent.getName() : null
@@ -133,11 +143,11 @@ public class HeroSpeechlet implements Speechlet {
         session.setAttribute("lastQuestionAsked", question)
 
         speechText += "\n"
-        speechText += question.getQuestion() + "\n"
+        speechText += question.getQuestion() + "<br/><br/>"
         String[] options = question.getOptions()
         int index = 1
         for(String option: options) {
-            speechText += (index++) + "\n\n\n\n" + option + "\n\n\n"
+            speechText += (index++) + "\n\n\n" + option + "<br/>"
         }
         speechText
     }
@@ -187,25 +197,23 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     private SpeechletResponse askResponse(String cardText, String speechText) {
-        StandardCard card = new StandardCard()
-        card.setTitle("Hero Quiz")
-        card.setText(speechText)
 
-        BodyTemplate2 template = new BodyTemplate2()
-        template.setTitle("My template")
+        BodyTemplate1 template = new BodyTemplate1()
+        template.setTitle("Hero Quiz")
+        BodyTemplate1.TextContent textContent = new BodyTemplate1.TextContent()
+        RichText richText = new RichText()
+        richText.text = cardText
+        textContent.setPrimaryText(richText)
+        template.setTextContent(textContent)
         com.amazon.speech.speechlet.interfaces.display.element.Image backgroundImage = new com.amazon.speech.speechlet.interfaces.display.element.Image()
         ImageInstance imageInstance = new ImageInstance()
-        imageInstance.setUrl("https://vignette1.wikia.nocookie.net/marveldatabase/images/e/e1/The_Marvel_Universe.png/revision/latest?cb=20110513164401")
+        imageInstance.setUrl("https://s-media-cache-ak0.pinimg.com/originals/cc/a8/51/cca8515138697c4027df4cf439b83bb5.jpg")
         ArrayList<ImageInstance> imageInstances = new ArrayList()
         imageInstances.add(imageInstance)
         backgroundImage.setSources(imageInstances)
         template.setBackgroundImage(backgroundImage)
         RenderTemplateDirective renderTemplateDirective = new RenderTemplateDirective()
         renderTemplateDirective.setTemplate(template)
-
-        Image image = new Image()
-        image.setLargeImageUrl("https://s-media-cache-ak0.pinimg.com/originals/b9/eb/6a/b9eb6a9cda9a924dcabfe93a91b7947f.jpg")
-        card.setImage(image)
 
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
         speech.setText(speechText)
