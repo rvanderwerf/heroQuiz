@@ -2,8 +2,6 @@ package com.vanderfox.hero
 
 import com.amazon.speech.slu.Intent
 import com.amazon.speech.slu.Slot
-import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazon.speech.speechlet.IntentRequest
 import com.amazon.speech.speechlet.LaunchRequest
 import com.amazon.speech.speechlet.Session
@@ -69,8 +67,8 @@ class HeroSpeechlet implements Speechlet {
     private SpeechletResponse getWelcomeResponse(Session session) {
         log.info("Welcome message")
         int numberOfQuestions = Integer.parseInt((String) session.getAttribute("questionCounter"))
-        String speechText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  Let's get started:   \n\n"
-        String cardText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say <b>repeat question</b> at any time if you need to hear a question again, or say <b>help</b> if you need some help.  Let's get started:   <br/><br/>"
+        String speechText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   \n\n"
+        String cardText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say <b>repeat question</b> at any time if you need to hear a question again, or say <b>help</b> if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   <br/><br/>"
         Question question = getRandomUnaskedQuestion(session)
         session.setAttribute("lastQuestionAsked", question)
         speechText += question.getSpeechText()
