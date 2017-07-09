@@ -11,22 +11,14 @@ import com.amazon.speech.speechlet.SessionStartedRequest
 import com.amazon.speech.speechlet.Speechlet
 import com.amazon.speech.speechlet.SpeechletException
 import com.amazon.speech.speechlet.SpeechletResponse
-import com.amazon.speech.speechlet.SupportedInterfaces
 import com.amazon.speech.speechlet.interfaces.display.directive.RenderTemplateDirective
 import com.amazon.speech.speechlet.interfaces.display.element.ImageInstance
-import com.amazon.speech.speechlet.interfaces.display.element.PlainText
 import com.amazon.speech.speechlet.interfaces.display.element.RichText
-import com.amazon.speech.speechlet.interfaces.display.element.TextField
-import com.amazon.speech.speechlet.interfaces.display.element.TripleTextContent
 import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate1
-import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate3
-import com.amazon.speech.ui.Card
-import com.amazon.speech.ui.Image
 import com.amazon.speech.ui.PlainTextOutputSpeech
 import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
-import com.amazon.speech.ui.StandardCard
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder
 import com.vanderfox.hero.question.Question
 import groovy.transform.CompileStatic
@@ -44,11 +36,11 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
  * @author Lee Fox and Ryan Vanderwerf
  */
 @CompileStatic
-public class HeroSpeechlet implements Speechlet {
+class HeroSpeechlet implements Speechlet {
     private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class)
 
     @Override
-    public void onSessionStarted(final SessionStartedRequest request, final Session session)
+    void onSessionStarted(final SessionStartedRequest request, final Session session)
             throws SpeechletException {
         log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
@@ -60,7 +52,7 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     @Override
-    public SpeechletResponse onLaunch(final LaunchRequest request, final Session session)
+    SpeechletResponse onLaunch(final LaunchRequest request, final Session session)
             throws SpeechletException {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
@@ -73,19 +65,22 @@ public class HeroSpeechlet implements Speechlet {
      * @return SpeechletResponse spoken and visual response for the given intent
      */
     private SpeechletResponse getWelcomeResponse(Session session) {
-        String speechText = "Welcome to Hero Quiz.  I'm going to ask you 10 questions to test your comic book knowledge.  Say <b>repeat question</b> at any time if you need to hear a question again, or say <b>help</b> if you need some help.  Let's get started:  Oh, wait.  Before I get started, I'm going to say a bunch of stuff to see if Lee got the scrolling screen of text working.  It might have worked and it might not have.  You can be the judge.  All you have to do is just fucking look at me while I am talking and see if the screen is scrolling with the text like it does for other skills native to the Echo Show, like playing music.  <br/>"
-        speechText = getQuestion(session, speechText)
-        askResponse(speechText, speechText)
+        log.info("Welcome message")
+        int numberOfQuestions = Integer.parseInt((String) session.getAttribute("questionCounter"))
+        String speechText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  Let's get started:   \n\n"
+        String cardText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say <b>repeat question</b> at any time if you need to hear a question again, or say <b>help</b> if you need some help.  Let's get started:   <br/><br/>"
+        Question question = getRandomUnaskedQuestion(session)
+        session.setAttribute("lastQuestionAsked", question)
+        speechText += question.getSpeechText()
+        cardText += question.getCardText()
+        askResponse(cardText, speechText)
     }
 
     @Override
-    public SpeechletResponse onIntent(final IntentRequest request, final Session session)
+    SpeechletResponse onIntent(final IntentRequest request, final Session session)
             throws SpeechletException {
         log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
-
-        Device device = Device.newInstance()
-        device.supportedInterfaces
 
         Intent intent = request.getIntent()
         String intentName = (intent != null) ? intent.getName() : null
@@ -116,7 +111,7 @@ public class HeroSpeechlet implements Speechlet {
     }
 
     @Override
-    public void onSessionEnded(final SessionEndedRequest request, final Session session)
+    void onSessionEnded(final SessionEndedRequest request, final Session session)
             throws SpeechletException {
         log.info("onSessionEnded requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
@@ -131,25 +126,6 @@ public class HeroSpeechlet implements Speechlet {
     private SpeechletResponse sayGoodbye() {
         String speechText = "OK.  I'm going to stop the game now."
         tellResponse(speechText, speechText)
-    }
-
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private String getQuestion(final Session session, String speechText) {
-        Question question = getRandomUnaskedQuestion(session)
-        session.setAttribute("lastQuestionAsked", question)
-
-        speechText += "\n"
-        speechText += question.getQuestion() + "<br/><br/>"
-        String[] options = question.getOptions()
-        int index = 1
-        for(String option: options) {
-            speechText += (index++) + "\n\n\n" + option + "<br/>"
-        }
-        speechText
     }
 
     private Question getRandomUnaskedQuestion(Session session) {
@@ -198,22 +174,7 @@ public class HeroSpeechlet implements Speechlet {
 
     private SpeechletResponse askResponse(String cardText, String speechText) {
 
-        BodyTemplate1 template = new BodyTemplate1()
-        template.setTitle("Hero Quiz")
-        BodyTemplate1.TextContent textContent = new BodyTemplate1.TextContent()
-        RichText richText = new RichText()
-        richText.text = cardText
-        textContent.setPrimaryText(richText)
-        template.setTextContent(textContent)
-        com.amazon.speech.speechlet.interfaces.display.element.Image backgroundImage = new com.amazon.speech.speechlet.interfaces.display.element.Image()
-        ImageInstance imageInstance = new ImageInstance()
-        imageInstance.setUrl("https://s-media-cache-ak0.pinimg.com/originals/cc/a8/51/cca8515138697c4027df4cf439b83bb5.jpg")
-        ArrayList<ImageInstance> imageInstances = new ArrayList()
-        imageInstances.add(imageInstance)
-        backgroundImage.setSources(imageInstances)
-        template.setBackgroundImage(backgroundImage)
-        RenderTemplateDirective renderTemplateDirective = new RenderTemplateDirective()
-        renderTemplateDirective.setTemplate(template)
+        RenderTemplateDirective renderTemplateDirective = buildBodyTemplate1(cardText)
 
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
         speech.setText(speechText)
@@ -231,6 +192,26 @@ public class HeroSpeechlet implements Speechlet {
         response.setReprompt(reprompt)
         response
 
+    }
+
+    private RenderTemplateDirective buildBodyTemplate1(String cardText) {
+        BodyTemplate1 template = new BodyTemplate1()
+        template.setTitle("Hero Quiz")
+        BodyTemplate1.TextContent textContent = new BodyTemplate1.TextContent()
+        RichText richText = new RichText()
+        richText.text = cardText
+        textContent.setPrimaryText(richText)
+        template.setTextContent(textContent)
+        com.amazon.speech.speechlet.interfaces.display.element.Image backgroundImage = new com.amazon.speech.speechlet.interfaces.display.element.Image()
+        ImageInstance imageInstance = new ImageInstance()
+        imageInstance.setUrl("https://s-media-cache-ak0.pinimg.com/originals/e4/30/78/e43078050e9a8d5bc2f8a1ed09a77227.png")
+        ArrayList<ImageInstance> imageInstances = new ArrayList()
+        imageInstances.add(imageInstance)
+        backgroundImage.setSources(imageInstances)
+        template.setBackgroundImage(backgroundImage)
+        RenderTemplateDirective renderTemplateDirective = new RenderTemplateDirective()
+        renderTemplateDirective.setTemplate(template)
+        renderTemplateDirective
     }
 
     private SpeechletResponse tellResponse(String cardText, String speechText) {
@@ -279,13 +260,7 @@ public class HeroSpeechlet implements Speechlet {
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         String speechText = ""
 
-        speechText += "\n"
-        speechText += question.getQuestion() + "\n"
-        String[] options = question.getOptions()
-        int index = 1
-        for(String option: options) {
-            speechText += (index++) + "\n\n\n\n" + option + "\n\n\n"
-        }
+        speechText += question.getSpeechText()
         askResponse(speechText, speechText)
 
     }
@@ -297,8 +272,6 @@ public class HeroSpeechlet implements Speechlet {
      */
     private SpeechletResponse getAnswer(Slot query, final Session session) {
 
-        def speechText
-
         int guessedAnswer = Integer.parseInt(query.getValue()) - 1
         log.info("Guessed answer is:  " + query.getValue())
 
@@ -307,21 +280,23 @@ public class HeroSpeechlet implements Speechlet {
 
     private SpeechletResponse processAnswer(Session session, int guessedAnswer) {
         def speechText
+        def cardText
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         def answer = question.getAnswer()
         log.info("correct answer is:  " + answer)
-        int questionCounter = Integer.parseInt((String) session.getAttribute("questionCounter"))
 
-        questionCounter = decrementQuestionCounter(session)
+        int questionCounter = decrementQuestionCounter(session)
 
         if (guessedAnswer == answer) {
             speechText = "You got it right."
+            cardText = "You got it right."
             int score = (Integer) session.getAttribute("score")
             score++
             session.setAttribute("score", score)
             questionMetricsCorrect(question.getIndex())
         } else {
             speechText = "You got it wrong."
+            cardText = "You got it wrong."
             questionMetricsWrong(question.getIndex())
         }
 
@@ -329,13 +304,16 @@ public class HeroSpeechlet implements Speechlet {
 
         if (questionCounter > 0) {
             session.setAttribute("state", "askQuestion")
-            speechText = getQuestion(session, speechText)
-            return askResponse(speechText, speechText)
+            question = getRandomUnaskedQuestion(session)
+            speechText += question.getSpeechText()
+            cardText += question.getCardText()
+            return askResponse(cardText, speechText)
         } else {
             int score = (Integer) session.getAttribute("score")
             speechText += "\n\nYou answered ${score} questions correctly."
+            cardText += "\n\nYou answered ${score} questions correctly."
             userMetrics(session.getUser().userId, score)
-            return tellResponse(speechText, speechText)
+            return tellResponse(cardText, speechText)
         }
     }
 
