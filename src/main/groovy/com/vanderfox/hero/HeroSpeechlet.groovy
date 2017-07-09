@@ -2,7 +2,8 @@ package com.vanderfox.hero
 
 import com.amazon.speech.slu.Intent
 import com.amazon.speech.slu.Slot
-import com.amazon.speech.speechlet.Device
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazon.speech.speechlet.IntentRequest
 import com.amazon.speech.speechlet.LaunchRequest
 import com.amazon.speech.speechlet.Session
@@ -44,6 +45,7 @@ class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
+
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
         session.setAttribute("askedQuestions", askedQuestions)
         session.setAttribute("questionCounter", 10)
@@ -163,12 +165,12 @@ class HeroSpeechlet implements Speechlet {
         Question question = new Question()
         question.setQuestion(questionText)
         question.setOptions(options)
-        question.setAnswer(questionAnswer - 1)
+        question.setAnswer(questionAnswer)
         question.setIndex(questionIndex)
-        log.info("question retrieved:  " + question.getIndex())
-        log.info("question retrieved:  " + question.getQuestion())
-        log.info("question retrieved:  " + question.getAnswer())
-        log.info("question retrieved:  " + question.getOptions().length)
+        log.info("question retrieved index:  " + question.getIndex())
+        log.info("question retrieved text:  " + question.getQuestion())
+        log.info("question retrieved correct:  " + question.getAnswer())
+        log.info("question retrieved number of options:  " + question.getOptions().length)
         question
     }
 
@@ -215,20 +217,24 @@ class HeroSpeechlet implements Speechlet {
     }
 
     private SpeechletResponse tellResponse(String cardText, String speechText) {
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard()
-        card.setTitle("Hero Quiz")
-        card.setContent(cardText)
+        RenderTemplateDirective renderTemplateDirective = buildBodyTemplate1(cardText)
 
-        // Create the plain text output.
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
         speech.setText(speechText)
 
-        // Create reprompt
         Reprompt reprompt = new Reprompt()
         reprompt.setOutputSpeech(speech)
 
-        SpeechletResponse.newTellResponse(speech, card)
+        SpeechletResponse response = new SpeechletResponse()
+        ArrayList directives = new ArrayList()
+        directives.add(renderTemplateDirective)
+        response.setDirectives(directives)
+        response.setNullableShouldEndSession(true)
+        response.setOutputSpeech(speech)
+        response.setReprompt(reprompt)
+        response
+
+
     }
 
     private SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
@@ -272,7 +278,7 @@ class HeroSpeechlet implements Speechlet {
      */
     private SpeechletResponse getAnswer(Slot query, final Session session) {
 
-        int guessedAnswer = Integer.parseInt(query.getValue()) - 1
+        int guessedAnswer = Integer.parseInt(query.getValue())
         log.info("Guessed answer is:  " + query.getValue())
 
         return processAnswer(session, guessedAnswer)
@@ -284,19 +290,20 @@ class HeroSpeechlet implements Speechlet {
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         def answer = question.getAnswer()
         log.info("correct answer is:  " + answer)
+        log.info("question was:  " + question.getQuestion())
 
         int questionCounter = decrementQuestionCounter(session)
 
         if (guessedAnswer == answer) {
-            speechText = "You got it right."
-            cardText = "You got it right."
+            speechText = "You got it right.\n\n"
+            cardText = "You got it right.<br/><br/>"
             int score = (Integer) session.getAttribute("score")
             score++
             session.setAttribute("score", score)
             questionMetricsCorrect(question.getIndex())
         } else {
-            speechText = "You got it wrong."
-            cardText = "You got it wrong."
+            speechText = "You got it wrong.\n\n"
+            cardText = "You got it wrong.<br/><br/>"
             questionMetricsWrong(question.getIndex())
         }
 
@@ -305,13 +312,14 @@ class HeroSpeechlet implements Speechlet {
         if (questionCounter > 0) {
             session.setAttribute("state", "askQuestion")
             question = getRandomUnaskedQuestion(session)
+            session.setAttribute("lastQuestionAsked", question)
             speechText += question.getSpeechText()
             cardText += question.getCardText()
             return askResponse(cardText, speechText)
         } else {
             int score = (Integer) session.getAttribute("score")
-            speechText += "\n\nYou answered ${score} questions correctly."
-            cardText += "\n\nYou answered ${score} questions correctly."
+            speechText += "\n\nYou answered ${score} questions correctly.\n\nThank you for playing."
+            cardText += "You answered ${score} questions correctly.<br/><br/>Thank you for playing."
             userMetrics(session.getUser().userId, score)
             return tellResponse(cardText, speechText)
         }
