@@ -6,11 +6,13 @@ package com.vanderfox.hero.question
 class Question {
     String question
     String[] options
+    String speechText
+    String cardText
     int answer
     int index
 
     String getSpeechText() {
-        String speechText = ""
+        speechText = ""
         speechText += speechText + question + "\n\n"
         int counter = 1
         for(String option: options) {
@@ -20,7 +22,7 @@ class Question {
     }
 
     String getCardText() {
-        String cardText = ""
+        cardText = ""
         cardText += cardText + question + "<br/>"
         int counter = 1
         for(String option: options) {
