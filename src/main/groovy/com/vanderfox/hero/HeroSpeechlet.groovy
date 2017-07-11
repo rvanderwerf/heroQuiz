@@ -3,8 +3,6 @@ package com.vanderfox.hero
 import com.amazon.speech.json.SpeechletRequestEnvelope
 import com.amazon.speech.slu.Intent
 import com.amazon.speech.slu.Slot
-import com.amazon.speech.speechlet.Context
-import com.amazon.speech.speechlet.Device
 import com.amazon.speech.speechlet.IntentRequest
 import com.amazon.speech.speechlet.LaunchRequest
 import com.amazon.speech.speechlet.Session
@@ -16,6 +14,7 @@ import com.amazon.speech.speechlet.SpeechletResponse
 import com.amazon.speech.speechlet.SupportedInterfaces
 import com.amazon.speech.speechlet.interfaces.display.DisplayInterface
 import com.amazon.speech.speechlet.interfaces.display.directive.RenderTemplateDirective
+import com.amazon.speech.speechlet.interfaces.display.element.Image
 import com.amazon.speech.speechlet.interfaces.display.element.ImageInstance
 import com.amazon.speech.speechlet.interfaces.display.element.RichText
 import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate1
@@ -63,8 +62,8 @@ class HeroSpeechlet implements SpeechletV2 {
         log.info("onLaunch requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
                 requestEnvelope.getSession().getSessionId())
 
-        Boolean supportDisplay = false;
-        SystemState systemState = requestEnvelope.getContext().getState(SystemInterface.class, SystemState.class);
+        Boolean supportDisplay = false
+        SystemState systemState = requestEnvelope.getContext().getState(SystemInterface.class, SystemState.class)
         SupportedInterfaces supportedInterfaces = systemState.device.getSupportedInterfaces()
         if (supportedInterfaces) {
             supportDisplay = supportedInterfaces.isInterfaceSupported(DisplayInterface)
@@ -74,7 +73,7 @@ class HeroSpeechlet implements SpeechletV2 {
         getWelcomeResponse(requestEnvelope.getSession())
     }
 
-    private boolean isSupportDisplay(Session session) {
+    static boolean isSupportDisplay(Session session) {
         boolean supportDisplay = (Boolean) session.getAttribute("supportDisplay")
         supportDisplay
     }
@@ -84,16 +83,20 @@ class HeroSpeechlet implements SpeechletV2 {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getWelcomeResponse(Session session) {
+    static SpeechletResponse getWelcomeResponse(Session session) {
         log.info("Welcome message")
+
+        String boldStart = (isSupportDisplay(session)) ? "<b>" : ""
+        String boldEnd = (isSupportDisplay(session)) ? "</b>" : ""
+        String newLine = (isSupportDisplay(session)) ? "<br/>" : "\n"
 
         int numberOfQuestions = Integer.parseInt((String) session.getAttribute("questionCounter"))
         String speechText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   \n\n"
-        String cardText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say <b>repeat question</b> at any time if you need to hear a question again, or say <b>help</b> if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   <br/><br/>"
+        String cardText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say " + boldStart + "repeat question" + boldEnd + " at any time if you need to hear a question again, or say " + boldStart + "help" + boldEnd + " if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   " + newLine + newLine
         Question question = getRandomUnaskedQuestion(session)
         session.setAttribute("lastQuestionAsked", question)
         speechText += question.getSpeechText()
-        cardText += question.getCardText()
+        cardText += question.getCardText(isSupportDisplay(session))
         askResponse(cardText, speechText, isSupportDisplay(session))
     }
 
@@ -116,7 +119,7 @@ class HeroSpeechlet implements SpeechletV2 {
                 processAnswer(session, 5, supportDisplay)
                 break
             case "AMAZON.HelpIntent":
-                getHelpResponse(session, supportDisplay)
+                getHelpResponse(supportDisplay)
                 break
             case "AMAZON.CancelIntent":
                 sayGoodbye(supportDisplay)
@@ -146,12 +149,12 @@ class HeroSpeechlet implements SpeechletV2 {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse sayGoodbye(boolean hasDisplay = false) {
+    static SpeechletResponse sayGoodbye(boolean supportDisplay) {
         String speechText = "OK.  I'm going to stop the game now."
-        tellResponse(speechText, speechText, hasDisplay)
+        tellResponse(speechText, speechText, supportDisplay)
     }
 
-    private Question getRandomUnaskedQuestion(Session session) {
+    static Question getRandomUnaskedQuestion(Session session) {
         LinkedHashMap<String, Question> askedQuestions = (LinkedHashMap) session.getAttribute("askedQuestions")
         Question question = getRandomQuestion(session)
         while(askedQuestions.get(question.getQuestion()) != null) {
@@ -162,7 +165,7 @@ class HeroSpeechlet implements SpeechletV2 {
         question
     }
 
-    private Question getRandomQuestion(Session session) {
+    static Question getRandomQuestion(Session session) {
         int tableRowCount = Integer.parseInt((String) session.getAttribute("tableRowCount"))
         int questionIndex = (new Random().nextInt() % tableRowCount).abs()
         log.info("The question index is:  " + questionIndex)
@@ -170,7 +173,7 @@ class HeroSpeechlet implements SpeechletV2 {
         question
     }
 
-    private Question getQuestion(int questionIndex) {
+    static Question getQuestion(int questionIndex) {
 
 
         DynamoDB dynamoDB = new DynamoDB(AmazonDynamoDBClientBuilder.defaultClient())
@@ -195,7 +198,7 @@ class HeroSpeechlet implements SpeechletV2 {
         question
     }
 
-    private SpeechletResponse askResponse(String cardText, String speechText, boolean hasDisplay) {
+    static SpeechletResponse askResponse(String cardText, String speechText, boolean supportDisplay) {
 
         RenderTemplateDirective renderTemplateDirective = buildBodyTemplate1(cardText)
 
@@ -207,11 +210,15 @@ class HeroSpeechlet implements SpeechletV2 {
 
         SpeechletResponse response = new SpeechletResponse()
 
-
-        if (hasDisplay) {
+        if (supportDisplay) {
             ArrayList directives = new ArrayList()
             directives.add(renderTemplateDirective)
             response.setDirectives(directives)
+        } else {
+            SimpleCard card = new SimpleCard()
+            card.setTitle("Hero Quiz")
+            card.setContent(cardText)
+            response.setCard(card)
         }
         response.setNullableShouldEndSession(false)
         response.setOutputSpeech(speech)
@@ -220,7 +227,7 @@ class HeroSpeechlet implements SpeechletV2 {
 
     }
 
-    private RenderTemplateDirective buildBodyTemplate1(String cardText) {
+    static RenderTemplateDirective buildBodyTemplate1(String cardText) {
         BodyTemplate1 template = new BodyTemplate1()
         template.setTitle("Hero Quiz")
         BodyTemplate1.TextContent textContent = new BodyTemplate1.TextContent()
@@ -228,7 +235,7 @@ class HeroSpeechlet implements SpeechletV2 {
         richText.text = cardText
         textContent.setPrimaryText(richText)
         template.setTextContent(textContent)
-        com.amazon.speech.speechlet.interfaces.display.element.Image backgroundImage = new com.amazon.speech.speechlet.interfaces.display.element.Image()
+        Image backgroundImage = new Image()
         ImageInstance imageInstance = new ImageInstance()
         imageInstance.setUrl("https://s-media-cache-ak0.pinimg.com/originals/e4/30/78/e43078050e9a8d5bc2f8a1ed09a77227.png")
         ArrayList<ImageInstance> imageInstances = new ArrayList()
@@ -240,7 +247,7 @@ class HeroSpeechlet implements SpeechletV2 {
         renderTemplateDirective
     }
 
-    private SpeechletResponse tellResponse(String cardText, String speechText, boolean hasDisplay = false) {
+    static SpeechletResponse tellResponse(String cardText, String speechText, boolean supportDisplay) {
         RenderTemplateDirective renderTemplateDirective = buildBodyTemplate1(cardText)
 
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
@@ -250,10 +257,15 @@ class HeroSpeechlet implements SpeechletV2 {
         reprompt.setOutputSpeech(speech)
 
         SpeechletResponse response = new SpeechletResponse()
-        if (hasDisplay) {
+        if (supportDisplay) {
             ArrayList directives = new ArrayList()
             directives.add(renderTemplateDirective)
             response.setDirectives(directives)
+        } else {
+            SimpleCard card = new SimpleCard()
+            card.setTitle("Hero Quiz")
+            card.setContent(cardText)
+            response.setCard(card)
         }
         response.setNullableShouldEndSession(true)
         response.setOutputSpeech(speech)
@@ -263,7 +275,7 @@ class HeroSpeechlet implements SpeechletV2 {
 
     }
 
-    private SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
+    static SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
         // Create the Simple card content.
         SimpleCard card = new SimpleCard()
         card.setTitle("Hero Quiz")
@@ -288,12 +300,12 @@ class HeroSpeechlet implements SpeechletV2 {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse repeatQuestion(final Session session, boolean hasDisplay = false) {
+    static SpeechletResponse repeatQuestion(final Session session, boolean supportDisplay) {
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         String speechText = ""
 
         speechText += question.getSpeechText()
-        askResponse(speechText, speechText, hasDisplay)
+        askResponse(speechText, speechText, supportDisplay)
 
     }
 
@@ -302,17 +314,18 @@ class HeroSpeechlet implements SpeechletV2 {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getAnswer(Slot query, final Session session, boolean hasDisplay = false) {
+    static SpeechletResponse getAnswer(Slot query, final Session session, boolean supportDisplay) {
 
         int guessedAnswer = Integer.parseInt(query.getValue())
         log.info("Guessed answer is:  " + query.getValue())
 
-        return processAnswer(session, guessedAnswer, hasDisplay)
+        return processAnswer(session, guessedAnswer, supportDisplay)
     }
 
-    private SpeechletResponse processAnswer(Session session, int guessedAnswer, boolean hasDisplay = false) {
+    static SpeechletResponse processAnswer(Session session, int guessedAnswer, boolean supportDisplay) {
         def speechText
         def cardText
+        String newLine = (isSupportDisplay(session)) ? "<br/>" : "\n"
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         def answer = question.getAnswer()
         log.info("correct answer is:  " + answer)
@@ -322,14 +335,14 @@ class HeroSpeechlet implements SpeechletV2 {
 
         if (guessedAnswer == answer) {
             speechText = "You got it right.\n\n"
-            cardText = "You got it right.<br/><br/>"
+            cardText = "You got it right." + newLine + newLine
             int score = (Integer) session.getAttribute("score")
             score++
             session.setAttribute("score", score)
             questionMetricsCorrect(question.getIndex())
         } else {
             speechText = "You got it wrong.\n\n"
-            cardText = "You got it wrong.<br/><br/>"
+            cardText = "You got it wrong." + newLine + newLine
             questionMetricsWrong(question.getIndex())
         }
 
@@ -340,26 +353,26 @@ class HeroSpeechlet implements SpeechletV2 {
             question = getRandomUnaskedQuestion(session)
             session.setAttribute("lastQuestionAsked", question)
             speechText += question.getSpeechText()
-            cardText += question.getCardText()
-            return askResponse(cardText, speechText, hasDisplay)
+            cardText += question.getCardText(supportDisplay)
+            return askResponse(cardText, speechText, supportDisplay)
         } else {
             int score = (Integer) session.getAttribute("score")
             speechText += "\n\nYou answered ${score} questions correctly.\n\nThank you for playing."
-            cardText += "You answered ${score} questions correctly.<br/><br/>Thank you for playing."
+            cardText += "You answered ${score} questions correctly.  " + newLine + newLine +"Thank you for playing."
             userMetrics(session.getUser().userId, score)
-            return tellResponse(cardText, speechText, hasDisplay)
+            return tellResponse(cardText, speechText, supportDisplay)
         }
     }
 
-    private void questionMetricsCorrect(int questionIndex) {
+    static void questionMetricsCorrect(int questionIndex) {
         questionMetrics(questionIndex, true)
     }
 
-    private void questionMetricsWrong(int questionIndex) {
+    static void questionMetricsWrong(int questionIndex) {
         questionMetrics(questionIndex, false)
     }
 
-    private void questionMetrics(int questionIndex, boolean correct) {
+    static void questionMetrics(int questionIndex, boolean correct) {
         DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
         Table table = dynamoDB.getTable("HeroQuizMetrics")
         Item item = table.getItem("id", questionIndex)
@@ -380,7 +393,7 @@ class HeroSpeechlet implements SpeechletV2 {
         table.putItem(newItem)
     }
 
-    private void userMetrics(String userId, int score) {
+    static void userMetrics(String userId, int score) {
         DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
         Table table = dynamoDB.getTable("HeroQuizUserMetrics")
         Item item = table.getItem("id", userId)
@@ -404,18 +417,17 @@ class HeroSpeechlet implements SpeechletV2 {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHelpResponse(Session session, boolean hasDisplay = false) {
-        String speechText = ""
-        speechText = "You can say stop or cancel to end the game at any time.  If you need a question repeated, say repeat question."
-        askResponse(speechText, speechText, hasDisplay)
+    static SpeechletResponse getHelpResponse(boolean supportDisplay) {
+        String speechText = "You can say stop or cancel to end the game at any time.  If you need a question repeated, say repeat question."
+        askResponse(speechText, speechText, supportDisplay)
     }
 
-    private SpeechletResponse didNotUnderstand(boolean hasDisplay = false) {
+    static SpeechletResponse didNotUnderstand(boolean supportDisplay) {
         String speechText = "I'm sorry.  I didn't understand what you said.  Say help me for help."
-        askResponse(speechText, speechText, hasDisplay)
+        askResponse(speechText, speechText, supportDisplay)
     }
 
-    private int decrementQuestionCounter(Session session) {
+    static int decrementQuestionCounter(Session session) {
         int questionCounter = (int) session.getAttribute("questionCounter")
         questionCounter--
         session.setAttribute("questionCounter", questionCounter)
@@ -426,7 +438,7 @@ class HeroSpeechlet implements SpeechletV2 {
     /**
      * Initializes the instance components if needed.
      */
-    private void initializeComponents(Session session) {
+    static void initializeComponents(Session session) {
         AmazonDynamoDBClient amazonDynamoDBClient
         amazonDynamoDBClient = new AmazonDynamoDBClient()
         ScanRequest req = new ScanRequest()

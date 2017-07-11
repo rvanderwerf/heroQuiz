@@ -23,12 +23,14 @@ class Question implements Serializable {
         speechText
     }
 
-    String getCardText() {
+    String getCardText(boolean supportDisplay) {
+        String newLine = (supportDisplay) ? "<br/>" : "\n"
         cardText = ""
-        cardText += cardText + question + "<br/>"
+        cardText += cardText + question + newLine
         int counter = 1
         for(String option: options) {
-            cardText += counter++ + "\n\n\n" + option + "<br/>"
+            String questionBreak = (supportDisplay) ? "\n\n" : "  "
+            cardText += counter++ + questionBreak + option + newLine
         }
         cardText
     }
