@@ -2,6 +2,7 @@ package com.vanderfox.hero
 
 import com.amazon.speech.slu.Intent
 import com.amazon.speech.slu.Slot
+import com.amazon.speech.speechlet.Device
 import com.amazon.speech.speechlet.IntentRequest
 import com.amazon.speech.speechlet.LaunchRequest
 import com.amazon.speech.speechlet.Session
@@ -10,6 +11,7 @@ import com.amazon.speech.speechlet.SessionStartedRequest
 import com.amazon.speech.speechlet.Speechlet
 import com.amazon.speech.speechlet.SpeechletException
 import com.amazon.speech.speechlet.SpeechletResponse
+import com.amazon.speech.speechlet.SupportedInterfaces
 import com.amazon.speech.speechlet.interfaces.display.directive.RenderTemplateDirective
 import com.amazon.speech.speechlet.interfaces.display.element.ImageInstance
 import com.amazon.speech.speechlet.interfaces.display.element.RichText
@@ -66,6 +68,12 @@ class HeroSpeechlet implements Speechlet {
      */
     private SpeechletResponse getWelcomeResponse(Session session) {
         log.info("Welcome message")
+
+        Device.Builder builder = Device.builder()
+        Device device = builder.build()
+        SupportedInterfaces supportedInterfaces = device.getSupportedInterfaces()
+
+
         int numberOfQuestions = Integer.parseInt((String) session.getAttribute("questionCounter"))
         String speechText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   \n\n"
         String cardText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say <b>repeat question</b> at any time if you need to hear a question again, or say <b>help</b> if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   <br/><br/>"
