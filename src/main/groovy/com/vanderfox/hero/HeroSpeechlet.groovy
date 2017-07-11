@@ -1,14 +1,16 @@
 package com.vanderfox.hero
 
+import com.amazon.speech.json.SpeechletRequestEnvelope
 import com.amazon.speech.slu.Intent
 import com.amazon.speech.slu.Slot
+import com.amazon.speech.speechlet.Context
 import com.amazon.speech.speechlet.Device
 import com.amazon.speech.speechlet.IntentRequest
 import com.amazon.speech.speechlet.LaunchRequest
 import com.amazon.speech.speechlet.Session
 import com.amazon.speech.speechlet.SessionEndedRequest
 import com.amazon.speech.speechlet.SessionStartedRequest
-import com.amazon.speech.speechlet.Speechlet
+import com.amazon.speech.speechlet.SpeechletV2
 import com.amazon.speech.speechlet.SpeechletException
 import com.amazon.speech.speechlet.SpeechletResponse
 import com.amazon.speech.speechlet.SupportedInterfaces
@@ -17,6 +19,8 @@ import com.amazon.speech.speechlet.interfaces.display.directive.RenderTemplateDi
 import com.amazon.speech.speechlet.interfaces.display.element.ImageInstance
 import com.amazon.speech.speechlet.interfaces.display.element.RichText
 import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate1
+import com.amazon.speech.speechlet.interfaces.system.SystemInterface
+import com.amazon.speech.speechlet.interfaces.system.SystemState
 import com.amazon.speech.ui.PlainTextOutputSpeech
 import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
@@ -38,32 +42,41 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
  * @author Lee Fox and Ryan Vanderwerf
  */
 @CompileStatic
-class HeroSpeechlet implements Speechlet {
+class HeroSpeechlet implements SpeechletV2 {
     private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class)
 
     @Override
-    void onSessionStarted(final SessionStartedRequest request, final Session session)
+    void onSessionStarted(SpeechletRequestEnvelope<SessionStartedRequest> requestEnvelope)
             throws SpeechletException {
-        log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
-                session.getSessionId())
-
+        log.info("onSessionStarted requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
+                requestEnvelope.getSession().getSessionId())
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
-        session.setAttribute("askedQuestions", askedQuestions)
-        session.setAttribute("questionCounter", 10)
-        session.setAttribute("score", 0)
-        initializeComponents(session)
+        requestEnvelope.getSession().setAttribute("askedQuestions", askedQuestions)
+        requestEnvelope.getSession().setAttribute("questionCounter", 10)
+        requestEnvelope.getSession().setAttribute("score", 0)
+        initializeComponents(requestEnvelope.getSession())
     }
 
     @Override
-    SpeechletResponse onLaunch(final LaunchRequest request, final Session session)
+    SpeechletResponse onLaunch(SpeechletRequestEnvelope<LaunchRequest> requestEnvelope)
             throws SpeechletException {
-        log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
-                session.getSessionId())
-        Device.Builder builder = Device.builder()
-        Device device = builder.withDeviceId(session.getApplication().applicationId).build()
-        SupportedInterfaces supportedInterfaces = device.getSupportedInterfaces()
-        boolean hasDisplay = supportedInterfaces.isInterfaceSupported(DisplayInterface)
-        getWelcomeResponse(session,hasDisplay)
+        log.info("onLaunch requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
+                requestEnvelope.getSession().getSessionId())
+
+        Boolean supportDisplay = false;
+        SystemState systemState = requestEnvelope.getContext().getState(SystemInterface.class, SystemState.class);
+        SupportedInterfaces supportedInterfaces = systemState.device.getSupportedInterfaces()
+        if (supportedInterfaces) {
+            supportDisplay = supportedInterfaces.isInterfaceSupported(DisplayInterface)
+        }
+        log.info("supportDisplay:  " + supportDisplay)
+        requestEnvelope.getSession().setAttribute("supportDisplay", supportDisplay)
+        getWelcomeResponse(requestEnvelope.getSession())
+    }
+
+    private boolean isSupportDisplay(Session session) {
+        boolean supportDisplay = (Boolean) session.getAttribute("supportDisplay")
+        supportDisplay
     }
 
     /**
@@ -71,11 +84,8 @@ class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getWelcomeResponse(Session session, boolean hasDisplay = false) {
+    private SpeechletResponse getWelcomeResponse(Session session) {
         log.info("Welcome message")
-
-
-
 
         int numberOfQuestions = Integer.parseInt((String) session.getAttribute("questionCounter"))
         String speechText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   \n\n"
@@ -84,52 +94,50 @@ class HeroSpeechlet implements Speechlet {
         session.setAttribute("lastQuestionAsked", question)
         speechText += question.getSpeechText()
         cardText += question.getCardText()
-        askResponse(cardText, speechText, hasDisplay)
+        askResponse(cardText, speechText, isSupportDisplay(session))
     }
 
     @Override
-    SpeechletResponse onIntent(final IntentRequest request, final Session session)
+    SpeechletResponse onIntent(SpeechletRequestEnvelope<IntentRequest> requestEnvelope)
             throws SpeechletException {
-        log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
+        String requestId = requestEnvelope.getRequest().getRequestId()
+        Session session = requestEnvelope.getSession()
+        log.info("onIntent requestId={}, sessionId={}", requestId,
                 session.getSessionId())
-        Device.Builder builder = Device.builder()
-        Device device = builder.withDeviceId(session.getApplication().applicationId).build()
-        SupportedInterfaces supportedInterfaces = device.getSupportedInterfaces()
-        boolean hasDisplay = supportedInterfaces.isInterfaceSupported(DisplayInterface)
-
-        Intent intent = request.getIntent()
+        Intent intent = requestEnvelope.getRequest().getIntent()
         String intentName = (intent != null) ? intent.getName() : null
+        boolean supportDisplay = isSupportDisplay(session)
         log.debug("Intent = " + intentName)
         switch (intentName) {
             case "AnswerIntent":
-                getAnswer(intent.getSlot("Answer"), session, hasDisplay)
+                getAnswer(intent.getSlot("Answer"), session, supportDisplay)
                 break
             case "DontKnowIntent":
-                processAnswer(session, 5, hasDisplay)
+                processAnswer(session, 5, supportDisplay)
                 break
             case "AMAZON.HelpIntent":
-                getHelpResponse(session, hasDisplay)
+                getHelpResponse(session, supportDisplay)
                 break
             case "AMAZON.CancelIntent":
-                sayGoodbye(hasDisplay)
+                sayGoodbye(supportDisplay)
                 break
             case "AMAZON.RepeatIntent":
-                repeatQuestion(session, hasDisplay)
+                repeatQuestion(session, supportDisplay)
                 break
             case "AMAZON.StopIntent":
-                sayGoodbye(hasDisplay)
+                sayGoodbye(supportDisplay)
                 break
             default:
-                didNotUnderstand(hasDisplay)
+                didNotUnderstand(supportDisplay)
                 break
         }
     }
 
     @Override
-    void onSessionEnded(final SessionEndedRequest request, final Session session)
+    void onSessionEnded(SpeechletRequestEnvelope<SessionEndedRequest> requestEnvelope)
             throws SpeechletException {
-        log.info("onSessionEnded requestId={}, sessionId={}", request.getRequestId(),
-                session.getSessionId())
+        log.info("onSessionEnded requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
+                requestEnvelope.getSession().getSessionId())
         // any cleanup logic goes here
     }
 
