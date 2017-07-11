@@ -12,6 +12,7 @@ import com.amazon.speech.speechlet.Speechlet
 import com.amazon.speech.speechlet.SpeechletException
 import com.amazon.speech.speechlet.SpeechletResponse
 import com.amazon.speech.speechlet.SupportedInterfaces
+import com.amazon.speech.speechlet.interfaces.display.DisplayInterface
 import com.amazon.speech.speechlet.interfaces.display.directive.RenderTemplateDirective
 import com.amazon.speech.speechlet.interfaces.display.element.ImageInstance
 import com.amazon.speech.speechlet.interfaces.display.element.RichText
@@ -58,7 +59,11 @@ class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
-        getWelcomeResponse(session)
+        Device.Builder builder = Device.builder()
+        Device device = builder.withDeviceId(session.getApplication().applicationId).build()
+        SupportedInterfaces supportedInterfaces = device.getSupportedInterfaces()
+        boolean hasDisplay = supportedInterfaces.isInterfaceSupported(DisplayInterface)
+        getWelcomeResponse(session,hasDisplay)
     }
 
     /**
@@ -66,12 +71,10 @@ class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getWelcomeResponse(Session session) {
+    private SpeechletResponse getWelcomeResponse(Session session, boolean hasDisplay = false) {
         log.info("Welcome message")
 
-        Device.Builder builder = Device.builder()
-        Device device = builder.build()
-        SupportedInterfaces supportedInterfaces = device.getSupportedInterfaces()
+
 
 
         int numberOfQuestions = Integer.parseInt((String) session.getAttribute("questionCounter"))
@@ -81,7 +84,7 @@ class HeroSpeechlet implements Speechlet {
         session.setAttribute("lastQuestionAsked", question)
         speechText += question.getSpeechText()
         cardText += question.getCardText()
-        askResponse(cardText, speechText)
+        askResponse(cardText, speechText, hasDisplay)
     }
 
     @Override
@@ -89,31 +92,35 @@ class HeroSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId())
+        Device.Builder builder = Device.builder()
+        Device device = builder.withDeviceId(session.getApplication().applicationId).build()
+        SupportedInterfaces supportedInterfaces = device.getSupportedInterfaces()
+        boolean hasDisplay = supportedInterfaces.isInterfaceSupported(DisplayInterface)
 
         Intent intent = request.getIntent()
         String intentName = (intent != null) ? intent.getName() : null
         log.debug("Intent = " + intentName)
         switch (intentName) {
             case "AnswerIntent":
-                getAnswer(intent.getSlot("Answer"), session)
+                getAnswer(intent.getSlot("Answer"), session, hasDisplay)
                 break
             case "DontKnowIntent":
-                processAnswer(session, 5)
+                processAnswer(session, 5, hasDisplay)
                 break
             case "AMAZON.HelpIntent":
-                getHelpResponse(session)
+                getHelpResponse(session, hasDisplay)
                 break
             case "AMAZON.CancelIntent":
-                sayGoodbye()
+                sayGoodbye(hasDisplay)
                 break
             case "AMAZON.RepeatIntent":
-                repeatQuestion(session)
+                repeatQuestion(session, hasDisplay)
                 break
             case "AMAZON.StopIntent":
-                sayGoodbye()
+                sayGoodbye(hasDisplay)
                 break
             default:
-                didNotUnderstand()
+                didNotUnderstand(hasDisplay)
                 break
         }
     }
@@ -131,9 +138,9 @@ class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse sayGoodbye() {
+    private SpeechletResponse sayGoodbye(boolean hasDisplay = false) {
         String speechText = "OK.  I'm going to stop the game now."
-        tellResponse(speechText, speechText)
+        tellResponse(speechText, speechText, hasDisplay)
     }
 
     private Question getRandomUnaskedQuestion(Session session) {
@@ -180,7 +187,7 @@ class HeroSpeechlet implements Speechlet {
         question
     }
 
-    private SpeechletResponse askResponse(String cardText, String speechText) {
+    private SpeechletResponse askResponse(String cardText, String speechText, boolean hasDisplay) {
 
         RenderTemplateDirective renderTemplateDirective = buildBodyTemplate1(cardText)
 
@@ -191,10 +198,13 @@ class HeroSpeechlet implements Speechlet {
         reprompt.setOutputSpeech(speech)
 
         SpeechletResponse response = new SpeechletResponse()
-        ArrayList directives = new ArrayList()
-        directives.add(renderTemplateDirective)
-        response.setDirectives(directives)
 
+
+        if (hasDisplay) {
+            ArrayList directives = new ArrayList()
+            directives.add(renderTemplateDirective)
+            response.setDirectives(directives)
+        }
         response.setNullableShouldEndSession(false)
         response.setOutputSpeech(speech)
         response.setReprompt(reprompt)
@@ -222,7 +232,7 @@ class HeroSpeechlet implements Speechlet {
         renderTemplateDirective
     }
 
-    private SpeechletResponse tellResponse(String cardText, String speechText) {
+    private SpeechletResponse tellResponse(String cardText, String speechText, boolean hasDisplay = false) {
         RenderTemplateDirective renderTemplateDirective = buildBodyTemplate1(cardText)
 
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
@@ -232,9 +242,11 @@ class HeroSpeechlet implements Speechlet {
         reprompt.setOutputSpeech(speech)
 
         SpeechletResponse response = new SpeechletResponse()
-        ArrayList directives = new ArrayList()
-        directives.add(renderTemplateDirective)
-        response.setDirectives(directives)
+        if (hasDisplay) {
+            ArrayList directives = new ArrayList()
+            directives.add(renderTemplateDirective)
+            response.setDirectives(directives)
+        }
         response.setNullableShouldEndSession(true)
         response.setOutputSpeech(speech)
         response.setReprompt(reprompt)
@@ -268,12 +280,12 @@ class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse repeatQuestion(final Session session) {
+    private SpeechletResponse repeatQuestion(final Session session, boolean hasDisplay = false) {
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         String speechText = ""
 
         speechText += question.getSpeechText()
-        askResponse(speechText, speechText)
+        askResponse(speechText, speechText, hasDisplay)
 
     }
 
@@ -282,15 +294,15 @@ class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getAnswer(Slot query, final Session session) {
+    private SpeechletResponse getAnswer(Slot query, final Session session, boolean hasDisplay = false) {
 
         int guessedAnswer = Integer.parseInt(query.getValue())
         log.info("Guessed answer is:  " + query.getValue())
 
-        return processAnswer(session, guessedAnswer)
+        return processAnswer(session, guessedAnswer, hasDisplay)
     }
 
-    private SpeechletResponse processAnswer(Session session, int guessedAnswer) {
+    private SpeechletResponse processAnswer(Session session, int guessedAnswer, boolean hasDisplay = false) {
         def speechText
         def cardText
         Question question = (Question) session.getAttribute("lastQuestionAsked")
@@ -321,13 +333,13 @@ class HeroSpeechlet implements Speechlet {
             session.setAttribute("lastQuestionAsked", question)
             speechText += question.getSpeechText()
             cardText += question.getCardText()
-            return askResponse(cardText, speechText)
+            return askResponse(cardText, speechText, hasDisplay)
         } else {
             int score = (Integer) session.getAttribute("score")
             speechText += "\n\nYou answered ${score} questions correctly.\n\nThank you for playing."
             cardText += "You answered ${score} questions correctly.<br/><br/>Thank you for playing."
             userMetrics(session.getUser().userId, score)
-            return tellResponse(cardText, speechText)
+            return tellResponse(cardText, speechText, hasDisplay)
         }
     }
 
@@ -384,15 +396,15 @@ class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHelpResponse(Session session) {
+    private SpeechletResponse getHelpResponse(Session session, boolean hasDisplay = false) {
         String speechText = ""
         speechText = "You can say stop or cancel to end the game at any time.  If you need a question repeated, say repeat question."
-        askResponse(speechText, speechText)
+        askResponse(speechText, speechText, hasDisplay)
     }
 
-    private SpeechletResponse didNotUnderstand() {
+    private SpeechletResponse didNotUnderstand(boolean hasDisplay = false) {
         String speechText = "I'm sorry.  I didn't understand what you said.  Say help me for help."
-        askResponse(speechText, speechText)
+        askResponse(speechText, speechText, hasDisplay)
     }
 
     private int decrementQuestionCounter(Session session) {
