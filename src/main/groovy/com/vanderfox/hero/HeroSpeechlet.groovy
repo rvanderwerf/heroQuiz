@@ -125,7 +125,7 @@ class HeroSpeechlet implements SpeechletV2 {
                 sayGoodbye(supportDisplay)
                 break
             case "AMAZON.RepeatIntent":
-                repeatQuestion(session, supportDisplay)
+                repeatQuestion(session, supportDisplay, false)
                 break
             case "AMAZON.StopIntent":
                 sayGoodbye(supportDisplay)
@@ -300,10 +300,12 @@ class HeroSpeechlet implements SpeechletV2 {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    static SpeechletResponse repeatQuestion(final Session session, boolean supportDisplay) {
+    static SpeechletResponse repeatQuestion(final Session session, boolean supportDisplay, boolean invalidAnswer) {
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         String speechText = ""
-
+        if(invalidAnswer) {
+            speechText = "I didn't understand that.  Let's try again.\n\n"
+        }
         speechText += question.getSpeechText()
         askResponse(speechText, speechText, supportDisplay)
 
@@ -316,10 +318,14 @@ class HeroSpeechlet implements SpeechletV2 {
      */
     static SpeechletResponse getAnswer(Slot query, final Session session, boolean supportDisplay) {
 
-        int guessedAnswer = Integer.parseInt(query.getValue())
-        log.info("Guessed answer is:  " + query.getValue())
+        try {
+            int guessedAnswer = Integer.parseInt(query.getValue())
+            log.info("Guessed answer is:  " + query.getValue())
 
-        return processAnswer(session, guessedAnswer, supportDisplay)
+            return processAnswer(session, guessedAnswer, supportDisplay)
+        } catch (NumberFormatException n) {
+            return repeatQuestion(session, supportDisplay, true)
+        }
     }
 
     static SpeechletResponse processAnswer(Session session, int guessedAnswer, boolean supportDisplay) {
