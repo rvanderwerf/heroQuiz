@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
  * this project using the {@code lambda-compile} Ant task and upload the resulting zip file to power
  * your function.
  */
-public final class HeroSpeechletRequestStreamHandler extends SpeechletRequestStreamHandler {
+final class HeroSpeechletRequestStreamHandler extends SpeechletRequestStreamHandler {
     private  static final Logger log = LoggerFactory.getLogger(HeroSpeechletRequestStreamHandler.class)
     private static final Set<String> supportedApplicationIds = new HashSet<String>()
     static {
@@ -22,10 +22,10 @@ public final class HeroSpeechletRequestStreamHandler extends SpeechletRequestStr
          * This Id can be found on https://developer.amazon.com/edw/home.html#/ "Edit" the relevant
          * Alexa Skill and put the relevant Application Ids in this Set.
          */
-        final Properties properties = new Properties();
+        final Properties properties = new Properties()
         try {
-            InputStream stream = com.vanderfox.hero.HeroSpeechlet.class.getClassLoader()getResourceAsStream("springSocial.properties")
-            properties.load(stream);
+            InputStream stream = HeroSpeechlet.class.getClassLoader()getResourceAsStream("springSocial.properties")
+            properties.load(stream)
 
             def property = properties.getProperty("awsApplicationId")
             log.info("Loading app ids: ${property}")
@@ -35,15 +35,15 @@ public final class HeroSpeechletRequestStreamHandler extends SpeechletRequestStr
                 supportedApplicationIds.add(appId)
             }
 
-        } catch (e) {
+        } catch (Exception e) {
             log.error("Unable to aws application id. Please set up a springSocial.properties")
         }
 
     }
 
 
-    public HeroSpeechletRequestStreamHandler() {
-        super(new com.vanderfox.hero.HeroSpeechlet(), supportedApplicationIds);
+    HeroSpeechletRequestStreamHandler() {
+        super(new HeroSpeechlet(), supportedApplicationIds);
     }
 
 

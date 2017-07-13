@@ -1,5 +1,6 @@
 package com.vanderfox.hero
 
+import com.amazon.speech.json.SpeechletRequestEnvelope
 import com.amazon.speech.slu.Intent
 import com.amazon.speech.slu.Slot
 import com.amazon.speech.speechlet.IntentRequest
@@ -7,50 +8,74 @@ import com.amazon.speech.speechlet.LaunchRequest
 import com.amazon.speech.speechlet.Session
 import com.amazon.speech.speechlet.SessionEndedRequest
 import com.amazon.speech.speechlet.SessionStartedRequest
-import com.amazon.speech.speechlet.Speechlet
+import com.amazon.speech.speechlet.SpeechletV2
 import com.amazon.speech.speechlet.SpeechletException
 import com.amazon.speech.speechlet.SpeechletResponse
+import com.amazon.speech.speechlet.SupportedInterfaces
+import com.amazon.speech.speechlet.interfaces.display.DisplayInterface
+import com.amazon.speech.speechlet.interfaces.display.directive.RenderTemplateDirective
+import com.amazon.speech.speechlet.interfaces.display.element.Image
+import com.amazon.speech.speechlet.interfaces.display.element.ImageInstance
+import com.amazon.speech.speechlet.interfaces.display.element.RichText
+import com.amazon.speech.speechlet.interfaces.display.template.BodyTemplate1
+import com.amazon.speech.speechlet.interfaces.system.SystemInterface
+import com.amazon.speech.speechlet.interfaces.system.SystemState
 import com.amazon.speech.ui.PlainTextOutputSpeech
 import com.amazon.speech.ui.Reprompt
 import com.amazon.speech.ui.SimpleCard
 import com.amazon.speech.ui.SsmlOutputSpeech
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder
 import com.vanderfox.hero.question.Question
 import groovy.transform.CompileStatic
-import org.slf4j.Logger;
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import com.amazonaws.services.dynamodbv2.document.DynamoDB
 import com.amazonaws.services.dynamodbv2.document.Table
 import com.amazonaws.services.dynamodbv2.document.Item
 import com.amazonaws.services.dynamodbv2.model.ScanRequest
 import com.amazonaws.services.dynamodbv2.model.ScanResult
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 
 /**
  * This app shows how to connect to hero with Spring Social, Groovy, and Alexa.
  * @author Lee Fox and Ryan Vanderwerf
  */
 @CompileStatic
-public class HeroSpeechlet implements Speechlet {
-    private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class);
+class HeroSpeechlet implements SpeechletV2 {
+    private static final Logger log = LoggerFactory.getLogger(HeroSpeechlet.class)
 
     @Override
-    public void onSessionStarted(final SessionStartedRequest request, final Session session)
+    void onSessionStarted(SpeechletRequestEnvelope<SessionStartedRequest> requestEnvelope)
             throws SpeechletException {
-        log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(),
-                session.getSessionId())
+        log.info("onSessionStarted requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
+                requestEnvelope.getSession().getSessionId())
         LinkedHashMap<String, Question> askedQuestions = new LinkedHashMap()
-        session.setAttribute("askedQuestions", askedQuestions)
-        session.setAttribute("questionCounter", 5)
-        session.setAttribute("score", 0)
-        initializeComponents(session)
+        requestEnvelope.getSession().setAttribute("askedQuestions", askedQuestions)
+        requestEnvelope.getSession().setAttribute("questionCounter", 5)
+        requestEnvelope.getSession().setAttribute("score", 0)
+        initializeComponents(requestEnvelope.getSession())
     }
 
     @Override
-    public SpeechletResponse onLaunch(final LaunchRequest request, final Session session)
+    SpeechletResponse onLaunch(SpeechletRequestEnvelope<LaunchRequest> requestEnvelope)
             throws SpeechletException {
-        log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
-                session.getSessionId());
-        getWelcomeResponse(session);
+        log.info("onLaunch requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
+                requestEnvelope.getSession().getSessionId())
+
+        Boolean supportDisplay = false
+        SystemState systemState = requestEnvelope.getContext().getState(SystemInterface.class, SystemState.class)
+        SupportedInterfaces supportedInterfaces = systemState.device.getSupportedInterfaces()
+        if (supportedInterfaces) {
+            supportDisplay = supportedInterfaces.isInterfaceSupported(DisplayInterface)
+        }
+        log.info("supportDisplay:  " + supportDisplay)
+        requestEnvelope.getSession().setAttribute("supportDisplay", supportDisplay)
+        getWelcomeResponse(requestEnvelope.getSession())
+    }
+
+    static boolean isSupportDisplay(Session session) {
+        boolean supportDisplay = (Boolean) session.getAttribute("supportDisplay")
+        supportDisplay
     }
 
     /**
@@ -58,51 +83,64 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getWelcomeResponse(Session session) {
-        String speechText = "Welcome to Unofficial Star Wars Quiz.  I'm going to ask you 5 questions to test your Star Wars knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  Let's get started"
-        speechText = getQuestion(session, speechText)
-        askResponse(speechText, speechText)
+    static SpeechletResponse getWelcomeResponse(Session session) {
+        log.info("Welcome message")
+
+        String boldStart = (isSupportDisplay(session)) ? "<b>" : ""
+        String boldEnd = (isSupportDisplay(session)) ? "</b>" : ""
+        String newLine = (isSupportDisplay(session)) ? "<br/>" : "\n"
+
+        int numberOfQuestions = Integer.parseInt((String) session.getAttribute("questionCounter"))
+        String speechText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   \n\n"
+        String cardText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say " + boldStart + "repeat question" + boldEnd + " at any time if you need to hear a question again, or say " + boldStart + "help" + boldEnd + " if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   " + newLine + newLine
+        Question question = getRandomUnaskedQuestion(session)
+        session.setAttribute("lastQuestionAsked", question)
+        speechText += question.getSpeechText()
+        cardText += question.getCardText(isSupportDisplay(session))
+        askResponse(cardText, speechText, isSupportDisplay(session))
     }
 
     @Override
-    public SpeechletResponse onIntent(final IntentRequest request, final Session session)
+    SpeechletResponse onIntent(SpeechletRequestEnvelope<IntentRequest> requestEnvelope)
             throws SpeechletException {
-        log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
+        String requestId = requestEnvelope.getRequest().getRequestId()
+        Session session = requestEnvelope.getSession()
+        log.info("onIntent requestId={}, sessionId={}", requestId,
                 session.getSessionId())
-
-        Intent intent = request.getIntent()
-        String intentName = (intent != null) ? intent.getName() : null;
+        Intent intent = requestEnvelope.getRequest().getIntent()
+        String intentName = (intent != null) ? intent.getName() : null
+        boolean supportDisplay = isSupportDisplay(session)
         log.debug("Intent = " + intentName)
         switch (intentName) {
             case "AnswerIntent":
-                getAnswer(intent.getSlot("Answer"), session)
+                getAnswer(intent.getSlot("Answer"), session, supportDisplay)
                 break
             case "DontKnowIntent":
-                processAnswer(session, 5)
+                processAnswer(session, 5, supportDisplay)
                 break
             case "AMAZON.HelpIntent":
-                getHelpResponse(session)
+                getHelpResponse(supportDisplay)
                 break
             case "AMAZON.CancelIntent":
-                sayGoodbye()
+                sayGoodbye(supportDisplay)
                 break
             case "AMAZON.RepeatIntent":
-                repeatQuestion(session)
+                repeatQuestion(session, supportDisplay, false)
                 break
             case "AMAZON.StopIntent":
-                sayGoodbye()
+                sayGoodbye(supportDisplay)
                 break
             default:
-                didNotUnderstand()
+                didNotUnderstand(supportDisplay)
                 break
         }
     }
 
     @Override
-    public void onSessionEnded(final SessionEndedRequest request, final Session session)
+    void onSessionEnded(SpeechletRequestEnvelope<SessionEndedRequest> requestEnvelope)
             throws SpeechletException {
-        log.info("onSessionEnded requestId={}, sessionId={}", request.getRequestId(),
-                session.getSessionId());
+        log.info("onSessionEnded requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
+                requestEnvelope.getSession().getSessionId())
         // any cleanup logic goes here
     }
 
@@ -111,31 +149,12 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse sayGoodbye() {
-        String speechText = "OK.  I'm going to stop the game now.";
-        tellResponse(speechText, speechText)
+    static SpeechletResponse sayGoodbye(boolean supportDisplay) {
+        String speechText = "OK.  I'm going to stop the game now."
+        tellResponse(speechText, speechText, supportDisplay)
     }
 
-    /**
-     * Creates a {@code SpeechletResponse} for the hello intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
-    private String getQuestion(final Session session, String speechText) {
-        Question question = getRandomUnaskedQuestion(session)
-        session.setAttribute("lastQuestionAsked", question)
-
-        speechText += "\n"
-        speechText += question.getQuestion() + "\n"
-        String[] options = question.getOptions()
-        int index = 1
-        for(String option: options) {
-            speechText += (index++) + "\n\n\n\n" + option + "\n\n\n"
-        }
-        speechText
-    }
-
-    private Question getRandomUnaskedQuestion(Session session) {
+    static Question getRandomUnaskedQuestion(Session session) {
         LinkedHashMap<String, Question> askedQuestions = (LinkedHashMap) session.getAttribute("askedQuestions")
         Question question = getRandomQuestion(session)
         while(askedQuestions.get(question.getQuestion()) != null) {
@@ -146,7 +165,7 @@ public class HeroSpeechlet implements Speechlet {
         question
     }
 
-    private Question getRandomQuestion(Session session) {
+    static Question getRandomQuestion(Session session) {
         int tableRowCount = Integer.parseInt((String) session.getAttribute("tableRowCount"))
         int questionIndex = (new Random().nextInt() % tableRowCount).abs()
         log.info("The question index is:  " + questionIndex)
@@ -154,8 +173,10 @@ public class HeroSpeechlet implements Speechlet {
         question
     }
 
-    private Question getQuestion(int questionIndex) {
-        DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
+    static Question getQuestion(int questionIndex) {
+
+
+        DynamoDB dynamoDB = new DynamoDB(AmazonDynamoDBClientBuilder.defaultClient())
         Table table = dynamoDB.getTable("StarWarsQuiz")
         Item item = table.getItem("Id", questionIndex)
         def questionText = item.getString("Question")
@@ -168,50 +189,93 @@ public class HeroSpeechlet implements Speechlet {
         Question question = new Question()
         question.setQuestion(questionText)
         question.setOptions(options)
-        question.setAnswer(questionAnswer - 1)
+        question.setAnswer(questionAnswer)
         question.setIndex(questionIndex)
-        log.info("question retrieved:  " + question.getIndex())
-        log.info("question retrieved:  " + question.getQuestion())
-        log.info("question retrieved:  " + question.getAnswer())
-        log.info("question retrieved:  " + question.getOptions().length)
+        log.info("question retrieved index:  " + question.getIndex())
+        log.info("question retrieved text:  " + question.getQuestion())
+        log.info("question retrieved correct:  " + question.getAnswer())
+        log.info("question retrieved number of options:  " + question.getOptions().length)
         question
     }
 
-    private SpeechletResponse askResponse(String cardText, String speechText) {
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard()
-        card.setTitle("Hero Quiz")
-        card.setContent(cardText)
+    static SpeechletResponse askResponse(String cardText, String speechText, boolean supportDisplay) {
 
-        // Create the plain text output.
+        RenderTemplateDirective renderTemplateDirective = buildBodyTemplate1(cardText)
+
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
         speech.setText(speechText)
 
-        // Create reprompt
         Reprompt reprompt = new Reprompt()
         reprompt.setOutputSpeech(speech)
 
-        SpeechletResponse.newAskResponse(speech, reprompt, card)
+        SpeechletResponse response = new SpeechletResponse()
+
+        if (supportDisplay) {
+            ArrayList directives = new ArrayList()
+            directives.add(renderTemplateDirective)
+            response.setDirectives(directives)
+        } else {
+            SimpleCard card = new SimpleCard()
+            card.setTitle("Hero Quiz")
+            card.setContent(cardText)
+            response.setCard(card)
+        }
+        response.setNullableShouldEndSession(false)
+        response.setOutputSpeech(speech)
+        response.setReprompt(reprompt)
+        response
+
     }
 
-    private SpeechletResponse tellResponse(String cardText, String speechText) {
-        // Create the Simple card content.
-        SimpleCard card = new SimpleCard()
-        card.setTitle("Unofficial Star Wars Quiz")
-        card.setContent(cardText)
+    static RenderTemplateDirective buildBodyTemplate1(String cardText) {
+        BodyTemplate1 template = new BodyTemplate1()
+        template.setTitle("Hero Quiz")
+        BodyTemplate1.TextContent textContent = new BodyTemplate1.TextContent()
+        RichText richText = new RichText()
+        richText.text = cardText
+        textContent.setPrimaryText(richText)
+        template.setTextContent(textContent)
+        Image backgroundImage = new Image()
+        ImageInstance imageInstance = new ImageInstance()
+        imageInstance.setUrl("https://s-media-cache-ak0.pinimg.com/originals/e4/30/78/e43078050e9a8d5bc2f8a1ed09a77227.png")
+        ArrayList<ImageInstance> imageInstances = new ArrayList()
+        imageInstances.add(imageInstance)
+        backgroundImage.setSources(imageInstances)
+        template.setBackgroundImage(backgroundImage)
+        RenderTemplateDirective renderTemplateDirective = new RenderTemplateDirective()
+        renderTemplateDirective.setTemplate(template)
+        renderTemplateDirective
+    }
 
-        // Create the plain text output.
+    static SpeechletResponse tellResponse(String cardText, String speechText, boolean supportDisplay) {
+        RenderTemplateDirective renderTemplateDirective = buildBodyTemplate1(cardText)
+
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech()
         speech.setText(speechText)
 
-        // Create reprompt
         Reprompt reprompt = new Reprompt()
         reprompt.setOutputSpeech(speech)
 
-        SpeechletResponse.newTellResponse(speech, card)
+        SpeechletResponse response = new SpeechletResponse()
+        if (supportDisplay) {
+            ArrayList directives = new ArrayList()
+            directives.add(renderTemplateDirective)
+            response.setDirectives(directives)
+        } else {
+            SimpleCard card = new SimpleCard()
+            card.setTitle("Hero Quiz")
+            card.setContent(cardText)
+            response.setCard(card)
+        }
+        response.setNullableShouldEndSession(true)
+        response.setOutputSpeech(speech)
+        response.setReprompt(reprompt)
+        response
+
+
     }
 
-    private SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
+    static SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
         // Create the Simple card content.
         SimpleCard card = new SimpleCard()
         card.setTitle("Hero Quiz")
@@ -236,18 +300,14 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse repeatQuestion(final Session session) {
+    static SpeechletResponse repeatQuestion(final Session session, boolean supportDisplay, boolean invalidAnswer) {
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         String speechText = ""
-
-        speechText += "\n"
-        speechText += question.getQuestion() + "\n"
-        String[] options = question.getOptions()
-        int index = 1
-        for(String option: options) {
-            speechText += (index++) + "\n\n\n\n" + option + "\n\n\n"
+        if(invalidAnswer) {
+            speechText = "I didn't understand that.  Let's try again.\n\n"
         }
-        askResponse(speechText, speechText)
+        speechText += question.getSpeechText()
+        askResponse(speechText, speechText, supportDisplay)
 
     }
 
@@ -256,33 +316,39 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getAnswer(Slot query, final Session session) {
+    static SpeechletResponse getAnswer(Slot query, final Session session, boolean supportDisplay) {
 
-        def speechText
+        try {
+            int guessedAnswer = Integer.parseInt(query.getValue())
+            log.info("Guessed answer is:  " + query.getValue())
 
-        int guessedAnswer = Integer.parseInt(query.getValue()) - 1
-        log.info("Guessed answer is:  " + query.getValue())
-
-        return processAnswer(session, guessedAnswer)
+            return processAnswer(session, guessedAnswer, supportDisplay)
+        } catch (NumberFormatException n) {
+            return repeatQuestion(session, supportDisplay, true)
+        }
     }
 
-    private SpeechletResponse processAnswer(Session session, int guessedAnswer) {
+    static SpeechletResponse processAnswer(Session session, int guessedAnswer, boolean supportDisplay) {
         def speechText
+        def cardText
+        String newLine = (isSupportDisplay(session)) ? "<br/>" : "\n"
         Question question = (Question) session.getAttribute("lastQuestionAsked")
         def answer = question.getAnswer()
         log.info("correct answer is:  " + answer)
-        int questionCounter = Integer.parseInt((String) session.getAttribute("questionCounter"))
+        log.info("question was:  " + question.getQuestion())
 
-        questionCounter = decrementQuestionCounter(session)
+        int questionCounter = decrementQuestionCounter(session)
 
         if (guessedAnswer == answer) {
-            speechText = "You got it right."
+            speechText = "You got it right.\n\n"
+            cardText = "You got it right." + newLine + newLine
             int score = (Integer) session.getAttribute("score")
             score++
             session.setAttribute("score", score)
             questionMetricsCorrect(question.getIndex())
         } else {
-            speechText = "You got it wrong."
+            speechText = "You got it wrong.\n\n"
+            cardText = "You got it wrong." + newLine + newLine
             questionMetricsWrong(question.getIndex())
         }
 
@@ -290,25 +356,29 @@ public class HeroSpeechlet implements Speechlet {
 
         if (questionCounter > 0) {
             session.setAttribute("state", "askQuestion")
-            speechText = getQuestion(session, speechText);
-            return askResponse(speechText, speechText)
+            question = getRandomUnaskedQuestion(session)
+            session.setAttribute("lastQuestionAsked", question)
+            speechText += question.getSpeechText()
+            cardText += question.getCardText(supportDisplay)
+            return askResponse(cardText, speechText, supportDisplay)
         } else {
             int score = (Integer) session.getAttribute("score")
-            speechText += "\n\nYou answered ${score} questions correctly."
+            speechText += "\n\nYou answered ${score} questions correctly.\n\nThank you for playing."
+            cardText += "You answered ${score} questions correctly.  " + newLine + newLine +"Thank you for playing."
             userMetrics(session.getUser().userId, score)
-            return tellResponse(speechText, speechText)
+            return tellResponse(cardText, speechText, supportDisplay)
         }
     }
 
-    private void questionMetricsCorrect(int questionIndex) {
+    static void questionMetricsCorrect(int questionIndex) {
         questionMetrics(questionIndex, true)
     }
 
-    private void questionMetricsWrong(int questionIndex) {
+    static void questionMetricsWrong(int questionIndex) {
         questionMetrics(questionIndex, false)
     }
 
-    private void questionMetrics(int questionIndex, boolean correct) {
+    static void questionMetrics(int questionIndex, boolean correct) {
         DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
         Table table = dynamoDB.getTable("HeroQuizMetrics")
         Item item = table.getItem("id", questionIndex)
@@ -329,7 +399,7 @@ public class HeroSpeechlet implements Speechlet {
         table.putItem(newItem)
     }
 
-    private void userMetrics(String userId, int score) {
+    static void userMetrics(String userId, int score) {
         DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
         Table table = dynamoDB.getTable("StarWarsQuizUserMetrics")
         Item item = table.getItem("id", userId)
@@ -353,18 +423,17 @@ public class HeroSpeechlet implements Speechlet {
      *
      * @return SpeechletResponse spoken and visual response for the given intent
      */
-    private SpeechletResponse getHelpResponse(Session session) {
-        String speechText = ""
-        speechText = "You can say stop or cancel to end the game at any time.  If you need a question repeated, say repeat question.";
-        askResponse(speechText, speechText)
+    static SpeechletResponse getHelpResponse(boolean supportDisplay) {
+        String speechText = "You can say stop or cancel to end the game at any time.  If you need a question repeated, say repeat question."
+        askResponse(speechText, speechText, supportDisplay)
     }
 
-    private SpeechletResponse didNotUnderstand() {
-        String speechText = "I'm sorry.  I didn't understand what you said.  Say help me for help.";
-        askResponse(speechText, speechText)
+    static SpeechletResponse didNotUnderstand(boolean supportDisplay) {
+        String speechText = "I'm sorry.  I didn't understand what you said.  Say help me for help."
+        askResponse(speechText, speechText, supportDisplay)
     }
 
-    private int decrementQuestionCounter(Session session) {
+    static int decrementQuestionCounter(Session session) {
         int questionCounter = (int) session.getAttribute("questionCounter")
         questionCounter--
         session.setAttribute("questionCounter", questionCounter)
@@ -375,7 +444,7 @@ public class HeroSpeechlet implements Speechlet {
     /**
      * Initializes the instance components if needed.
      */
-    private void initializeComponents(Session session) {
+    static void initializeComponents(Session session) {
         AmazonDynamoDBClient amazonDynamoDBClient
         amazonDynamoDBClient = new AmazonDynamoDBClient()
         ScanRequest req = new ScanRequest()
