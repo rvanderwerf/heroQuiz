@@ -91,8 +91,8 @@ class HeroSpeechlet implements SpeechletV2 {
         String newLine = (isSupportDisplay(session)) ? "<br/>" : "\n"
 
         int numberOfQuestions = Integer.parseInt((String) session.getAttribute("questionCounter"))
-        String speechText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   \n\n"
-        String cardText = "Welcome to Hero Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your comic book knowledge.  Say " + boldStart + "repeat question" + boldEnd + " at any time if you need to hear a question again, or say " + boldStart + "help" + boldEnd + " if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   " + newLine + newLine
+        String speechText = "Welcome to the Unofficial Star Wars Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your Star Wars knowledge.  Say repeat question at any time if you need to hear a question again, or say help if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   \n\n"
+        String cardText = "Welcome to the Unofficial Star Wars Quiz.  I'm going to ask you " + numberOfQuestions + " questions to test your Star Wars knowledge.  Say " + boldStart + "repeat question" + boldEnd + " at any time if you need to hear a question again, or say " + boldStart + "help" + boldEnd + " if you need some help.  To answer a question, just say the number of the answer.  Let's get started:   " + newLine + newLine
         Question question = getRandomUnaskedQuestion(session)
         session.setAttribute("lastQuestionAsked", question)
         speechText += question.getSpeechText()
@@ -216,7 +216,7 @@ class HeroSpeechlet implements SpeechletV2 {
             response.setDirectives(directives)
         } else {
             SimpleCard card = new SimpleCard()
-            card.setTitle("Hero Quiz")
+            card.setTitle("Unofficial Star Wars Quiz")
             card.setContent(cardText)
             response.setCard(card)
         }
@@ -229,7 +229,7 @@ class HeroSpeechlet implements SpeechletV2 {
 
     static RenderTemplateDirective buildBodyTemplate1(String cardText) {
         BodyTemplate1 template = new BodyTemplate1()
-        template.setTitle("Hero Quiz")
+        template.setTitle("Unofficial Star Wars Quiz")
         BodyTemplate1.TextContent textContent = new BodyTemplate1.TextContent()
         RichText richText = new RichText()
         richText.text = cardText
@@ -237,7 +237,7 @@ class HeroSpeechlet implements SpeechletV2 {
         template.setTextContent(textContent)
         Image backgroundImage = new Image()
         ImageInstance imageInstance = new ImageInstance()
-        imageInstance.setUrl("https://s-media-cache-ak0.pinimg.com/originals/e4/30/78/e43078050e9a8d5bc2f8a1ed09a77227.png")
+        imageInstance.setUrl("https://media.giphy.com/media/YJNOIvcwG1NcY/giphy.gif")
         ArrayList<ImageInstance> imageInstances = new ArrayList()
         imageInstances.add(imageInstance)
         backgroundImage.setSources(imageInstances)
@@ -263,7 +263,7 @@ class HeroSpeechlet implements SpeechletV2 {
             response.setDirectives(directives)
         } else {
             SimpleCard card = new SimpleCard()
-            card.setTitle("Hero Quiz")
+            card.setTitle("Unofficial Star Wars Quiz")
             card.setContent(cardText)
             response.setCard(card)
         }
@@ -278,7 +278,7 @@ class HeroSpeechlet implements SpeechletV2 {
     static SpeechletResponse askResponseFancy(String cardText, String speechText, String fileUrl) {
         // Create the Simple card content.
         SimpleCard card = new SimpleCard()
-        card.setTitle("Hero Quiz")
+        card.setTitle("Unofficial Star Wars Quiz")
         card.setContent(cardText)
 
         // Create the plain text output.
@@ -380,7 +380,8 @@ class HeroSpeechlet implements SpeechletV2 {
 
     static void questionMetrics(int questionIndex, boolean correct) {
         DynamoDB dynamoDB = new DynamoDB(new AmazonDynamoDBClient())
-        Table table = dynamoDB.getTable("HeroQuizMetrics")
+        Table table = dynamoDB.getTable("StarWarzQuizMetrics")
+        log.debug("getting question id from table ${questionIndex}")
         Item item = table.getItem("id", questionIndex)
         int askedCount = 0
         int correctCount = 0
